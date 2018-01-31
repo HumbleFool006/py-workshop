@@ -22,5 +22,10 @@ python_install_pip(){
 	print_done
 }
 
+activate_venv(){
+	. `pwd`/venv_setup/bin/activate
+}
+
 python_install_pip
 python_venv_setup
+activate_venv
