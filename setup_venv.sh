@@ -9,7 +9,7 @@ print_done() {
 
 python_venv_setup(){
 	print_green "Setting up virtual environment" 
-	python virtualenv.py --no-setuptools `pwd`/venv_setup 2>/dev/null
+	python3 virtualenv.py --no-setuptools `pwd`/venv_setup 2>/dev/null
 	rm -f "virtualenv.pyc"
 	print_done
 	`pwd`/venv_setup/bin/python get-pip.py
@@ -22,10 +22,6 @@ python_install_pip(){
 	print_done
 }
 
-activate_venv(){
-	. `pwd`/venv_setup/bin/activate
-}
-
 python_install_pip
 python_venv_setup
-activate_venv
+python_venv_setup
