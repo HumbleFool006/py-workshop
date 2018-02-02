@@ -11,11 +11,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'social_django',
     'user',
     'cal',
     'schedule',
     'djangobower',
+    'django_comments',
+    'django_xmlrpc',
+    'mptt',
+    'tagging',
+    'zinnia'
 ]
 
 MIDDLEWARE = [
@@ -104,3 +110,5 @@ BOWER_INSTALLED_APPS = (
     'bootstrap',
     'fullcalendar'
 )
+
+SITE_ID = 1
