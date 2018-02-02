@@ -661,3 +661,20 @@ label.label-checkbox {
     transform: rotate(45deg);
 }
 
+/* Blog app */
+
+.Blog_body {
+    margin-top: 6%;
+}
+
+.Blog_item {
+    left: 10%;
+    margin-top: 5px;
+}
+
+.Blog_new {
+    position: absolute;
+    top: 1%;
+    left: 10%;
+    z-index: 2;
+}

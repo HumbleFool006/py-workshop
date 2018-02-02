@@ -17,11 +17,7 @@ INSTALLED_APPS = [
     'cal',
     'schedule',
     'djangobower',
-    'django_comments',
-    'django_xmlrpc',
-    'mptt',
-    'tagging',
-    'zinnia'
+    'blog',
 ]
 
 MIDDLEWARE = [
@@ -110,5 +106,3 @@ BOWER_INSTALLED_APPS = (
     'bootstrap',
     'fullcalendar'
 )
-
-SITE_ID = 1
