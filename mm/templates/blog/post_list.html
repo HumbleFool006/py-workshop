@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Blogs...
+{% endblock %}
+
+{% block content %}
+<a class="btn btn-primary Blog_new" href="new" role="button">New</a>
+<div class="Blog_body">
+    {% for post in posts %}
+    <div class="card w-75 Blog_item">
+      <div class="card-block">
+        <h3 class="card-title">{{ post.title }}</h3>
+        <h6 class="card-subtitle mb-2 text-muted">{{ post.published_date }}</h6>
+        <p class="card-text">{{ post.text|linebreaksbr }}</p>
+        <!--<a href="#" class="btn btn-primary">Button</a>-->
+      </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
