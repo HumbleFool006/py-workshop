@@ -1,59 +1,31 @@
-{% extends 'base.html' %}
-{% load i18n static %}
+{% extends 'blog/base.html' %}
 
 {% block content %}
-<div class="py3 px3 py10-sm signUp_bg">
-    <div id="login_form" class="login_form">
-        <div class="login_form_inner">
-            <h2 class="title">Log in</h2>
-            {% if form.non_field_errors %}
-            {% for error in form.non_field_errors %}
-            <p class="errornote">
-                {{ error }}
-            </p>
-            {% endfor %}
-            {% endif %}
-            <div class="mb3">
-                <form action="{{ app_path }}" method="post" id="inner_login" class="inner_login">{% csrf_token %}
-                    <fieldset class="mb2">
-                        <ol>
-                            <li class="mb2">
-                                {{ form.username.errors }}
-                                {{ form.username }} 
-                            </li>
-                            <li class="mb2 relative">
-                                <div class="relative">
-                                    {{ form.password.errors }}
-                                    {{ form.password }}
-                                </div>
-                            </li>
-                            <li class="clearfix">
-                                <input type="submit" name="commit" value="Log me in!" class="login_btn">
-                            </li>
-                        </ol>
-                    </fieldset>
-                </form>
-            </div>
-            <div class="text-strikethru">
-                <div class="line"></div>
-                <div class="text">or</div>
-            </div>
-            <div class="mb2 flex">
-                <a href="{% url 'social:begin' 'facebook' %}?next={{ next }}" class="facebook_login_btn">
-                    Facebook
-                </a>
-                <a href="{% url 'social:begin' 'google-oauth2' %}?next={{ next }}" class="gmail_login_btn">
-                    Google
-                </a>
-            </div>
-            <p class="center grey-dark fs12">
-                We'll never post anything on Facebook<br>without your permission.
-            </p>
+    <container class="signup_login">
+        <div class="singupForm">
+            <h2 class="title">Login</h2>
+            <form method="post">
+               {% csrf_token %}
+        <div class="form-group">
+            {{ form.username.errors }}
+            <label for="exampleInputEmail1">Email address</label>
+            <input type="email" name="username" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
         </div>
-        <div class="login_form_footer">
-            <a class="bold js-switch-to-signup" href="/signup">Sign Up!</a>
+        <div class="form-group">
+            {{ form.password.errors }}
+            <label for="password">Password</label>
+            <input type="text" name="password" class="form-control" id="password" placeholder="firstname">
         </div>
-    </div>
-
-</div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+        <div class="social">
+            <a href="{% url 'social:begin' 'facebook' %}" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">Facebook</a>
+            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-primary btn-lg active gl" role="button" aria-pressed="true">Google</a>
+        </div>
+        <div class="login_form_top">
+            Don't have an account?
+            <a class="bold js-switch-to-signup" href="/signup" class="login">Sign Up</a>
+        </div>
+    </container>
 {% endblock %}

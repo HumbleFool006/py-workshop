@@ -22,5 +22,5 @@ urlpatterns = [
     re_path(r'^oauth/', include('social_django.urls', namespace='social')),
     path('', include('blog.urls')),
     path('admin/', admin.site.urls),
-    path('', include('social.apps.django_app.urls', namespace='social')),
+    # path('', include('social.apps.django_app.urls', namespace='social')),
 ]

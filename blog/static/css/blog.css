@@ -48,3 +48,39 @@ h1, h2, h3, h4 {
 .post h1 a, .post h1 a:visited {
     color: #000000;
 }
+
+a.btn.btn-primary.btn-lg.active.gl {
+    background-color: red;
+    border-color: red;
+}
+
+.social {
+    /* display: flex; */
+    /* margin: 18px; */
+    left: 57%;
+    position: relative;
+}
+
+
+.login_form_top {
+    top: 108%;
+    left: 61%;
+    position: relative;
+}
+
+.singupForm {
+    position: relative;
+    left: 30%;
+    padding-top: 10%;
+}
+
+container.signup_login {
+    position: relative;
+    left: 50%;
+}
+
+h2.title {
+    left: 35%;
+    position: relative;
+    font-family: arial;
+}
