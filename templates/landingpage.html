@@ -1,0 +1,77 @@
+{% load staticfiles i18n %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% block title %}{% endblock %}</title>
+        <link rel="stylesheet" href="{% static "bootstrap/dist/css/bootstrap.css" %}" type="text/css" media="screen">
+        <script type="text/javascript" src="{% static "jquery/dist/jquery.js" %}"></script>
+        <script type="text/javascript" src="{% static "jquery-ui/jquery-ui.min.js" %}"></script>
+        <script type="text/javascript" src="{% static "bootstrap/dist/js/bootstrap.js" %}"></script>
+        <script type="text/javascript" src="{% static "schedule.js" %}"></script>
+        <link rel="stylesheet" href="{% static "schedule.css" %}" type="text/css" media="screen">
+        <link rel="stylesheet" href="{% static "jquery-ui/themes/base/all.css" %}" type="text/css" media="screen">
+        <link rel="stylesheet" type="text/css" href="{% block stylesheet %}{% static "cal/css/base.css" %}{% endblock %}" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        {% block extrastyle %}
+        {% endblock %}
+        {% block extrahead %}
+        {% endblock %}
+        {% block blockbots %}
+            <meta name="robots" content="NONE,NOARCHIVE" />
+        {% endblock %}
+    </head>
+
+    <body>
+
+        <div id="container">
+            {% block header %}
+                {% include "header.html" %}
+            {% endblock %}
+
+            {% block messages %}
+                {% if messages %}
+                <ul class="messagelist">{% for message in messages %}
+                  <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>
+                {% endfor %}</ul>
+                {% endif %}
+            {% endblock messages %}
+
+            <div id="main_content" class="main_content ">
+                {% block content %}
+                {% endblock %}
+                {% block body %}
+                {% endblock %}
+            </div>
+
+            {% block footer %}
+                {% include "footer.html" %}
+            {% endblock %}
+
+            <div class="cB"></div>
+            <ul class="logout_outer" id="logout_outer">
+                <li>
+                    <a href="{% url 'logout' %}">
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <script>
+            function userDetail(a){
+                var headerHt = $("#header").innerHeight();
+                var left = $(a).position().left;
+                var top = $(a).position().top + headerHt;
+                $("#logout_outer").show();
+                $("#logout_outer").css({
+                    top: top,
+                    left: left
+                });
+            }
+        </script>
+
+        <script src="{% static "cal/js/app.js" %}"></script>
+    </body>
+
+</html>

@@ -2,8 +2,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from blog.models import Post
 from blog.forms import PostForm
-
+from django.contrib.auth.decorators import login_required
+ 
 # Create your views here.
+@login_required
 def post_list(request):
     posts = Post.objects.all()
     return render(request, 'blog/post_list.html', {'posts':posts})

@@ -1,0 +1,29 @@
+{% load i18n %}
+{% load i18n static %}
+
+<div id="header" class="mm_nav_outer full_width">
+<div class="mm_nav_inner">
+  <div class="mm_nav_right">
+    {% if user.is_authenticated %}
+      <div class="mm_nav_item" onclick="userDetail(this)">
+          <span class="mm_nav_item_lable">
+            <i class="fa fa-user" aria-hidden="true"></i>
+            {{ user.first_name }}
+            <i class="fa fa-caret-down" aria-hidden="true"></i>
+          </span>
+      </div>
+    {% else %}
+      <a href="{% url 'signup' %}" class="mm_nav_item">
+          <span class="mm_nav_item_lable">
+            <i class="fa fa-user-plus" aria-hidden="true"></i>
+          Sign Up</span>
+      </a>
+      <a href="{% url 'login' %}" class="mm_nav_item">
+          <span class="mm_nav_item_lable">
+            <i class="fa fa-sign-in" aria-hidden="true"></i> Log In
+          </span>
+      </a>
+    {% endif %}
+  </div>
+  </div>
+</div>

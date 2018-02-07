@@ -1,0 +1,69 @@
+{% extends 'landingpage.html' %}
+
+{% block content %}
+ <div class="py3 px3 py10-sm">
+    <div id="login_form" class="login_form">
+       <div class="login_form_top">
+            Have an account?
+            <a class="bold js-switch-to-signup" href="/login" class="login">Log In</a>
+        </div>
+        <div class="login_form_inner">
+            <h2 class="title">Sign Up</h2>
+            <div class="mb3">
+                <form method="post">{% csrf_token %}
+                    <fieldset class="mb2 b0">
+                        <ol>
+                            <li class="mb2">
+                                {{ form.username.errors }}
+                                {{ form.username }}
+                            </li>
+                            <li class="mb2">
+                                {{ form.first_name.errors }}
+                                {{ form.first_name }} 
+                            </li>
+                            <li class="mb2">
+                                {{ form.last_name.errors }}
+                                {{ form.last_name }} 
+                            </li>
+                            <li class="mb2">
+                                {{ form.password1.errors }}
+                                {{ form.password1 }}
+                            </li>
+                            <li class="mb2">
+                                {{ form.mobile_no.errors }}
+                                {{ form.mobile_no }}
+                            </li>
+
+                            <li class="clearfix">
+                                <input type="submit" name="commit" value="Create account" class="login_btn">
+                            </li>
+                        </ol>
+                    </fieldset>
+                </form>
+            </div>
+            <p class="terms fs12 mb24 grey-dark mt2 center border-box clip">
+                By signing Up, you agree to our
+                <a class="popup" target="_blank" href="/terms-of-use">terms of use</a>, 
+                <a class="popup" target="_blank" href="/privacy">privacy policy</a>, and 
+                <a class="popup" target="_blank" href="/cookies">cookie policy</a>.
+            </p>
+            <div class="text-strikethru">
+                <div class="line"></div>
+                <div class="text">or</div>
+            </div>
+            <div class="mb2 flex">
+                <a href="{% url 'social:begin' 'facebook' %}" class="facebook_login_btn">
+                    Facebook
+                </a>
+                <a href="{% url 'social:begin' 'google-oauth2' %}" class="gmail_login_btn">
+                    Google
+                </a>
+            </div>
+            <p class="center fs12 grey-dark">
+                We'll never post anything on Facebook<br>without your permission.
+            </p>
+            
+        </div>
+     </div>
+</div>
+{% endblock %}
