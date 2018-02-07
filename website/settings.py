@@ -74,13 +74,6 @@ TEMPLATES = [
     },
 ]
 
-AUTHENTICATION_BACKENDS = (
-    'social.backends.facebook.FacebookOAuth2',
-    'social.backends.google.GoogleOAuth2',
-    'social.backends.twitter.TwitterOAuth',
-    'django.contrib.auth.backends.ModelBackend',
-)
-
 
 WSGI_APPLICATION = 'website.wsgi.application'
 
@@ -129,3 +122,5 @@ USE_TZ = True
 STATIC_URL = '/static/'
 LOGIN_REDIRECT_URL = "post_list"
 LOGIN_URL = 'login'
+
+from user.settings import *

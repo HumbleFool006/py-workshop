@@ -3,11 +3,13 @@
 """
 LOGIN_REDIRECT_URL = 'post_list'
 LOGIN_URL = '/login/'
+
 AUTHENTICATION_BACKENDS = (
     'social_core.backends.facebook.FacebookOAuth2',
     'social_core.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
+
 SOCIAL_AUTH_FACEBOOK_KEY = '116504052370305'  # App ID
 SOCIAL_AUTH_FACEBOOK_SECRET = 'ea17f80aefbac0e33b42dd1a654c1399'
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
