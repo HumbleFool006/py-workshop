@@ -1,31 +1,31 @@
 {% extends 'blog/base.html' %}
+{% load staticfiles %}
 
 {% block content %}
-    <container class="signup_login">
-        <div class="singupForm">
-            <h2 class="title">Login</h2>
-            <form method="post">
-               {% csrf_token %}
-        <div class="form-group">
-            {{ form.username.errors }}
-            <label for="exampleInputEmail1">Email address</label>
-            <input type="email" name="username" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
-        </div>
-        <div class="form-group">
-            {{ form.password.errors }}
-            <label for="password">Password</label>
-            <input type="password" name="password" class="form-control" id="password" placeholder="firstname">
-        </div>
-                <button type="submit" class="btn btn-primary">Submit</button>
-            </form>
-        </div>
-        <div class="social">
-            <a href="{% url 'social:begin' 'facebook' %}" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">Facebook</a>
-            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-primary btn-lg active gl" role="button" aria-pressed="true">Google</a>
-        </div>
-        <div class="login_form_top">
-            Don't have an account?
-            <a class="bold js-switch-to-signup" href="/signup" class="login">Sign Up</a>
-        </div>
-    </container>
+
+    <div class="singupForm">
+        <h2 class="title">Login</h2>
+        <form method="post">
+           {% csrf_token %}
+    <div class="form-group">
+        {{ form.username.errors }}
+        <label for="exampleInputEmail1">Email address</label>
+        <input type="email" name="username" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
+    </div>
+    <div class="form-group">
+        {{ form.password.errors }}
+        <label for="password">Password</label>
+        <input type="password" name="password" class="form-control" id="password" placeholder="firstname">
+    </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+    <div class="social">
+        <a href="{% url 'social:begin' 'facebook' %}" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">Facebook</a>
+        <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-primary btn-lg active gl" role="button" aria-pressed="true">Google</a>
+    </div>
+    <div class="login_form_top">
+        Don't have an account?
+        <a class="bold js-switch-to-signup" href="/signup" class="login">Sign Up</a>
+    </div>
 {% endblock %}
