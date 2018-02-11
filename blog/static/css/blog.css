@@ -80,6 +80,12 @@ a.top-menu {
     position: relative;
 }
 
+.post a {
+        color: black;
+}
+.post p {
+        font-size: large;
+}
 /* Drop down */
 .dropbtn {
     background-color: #3498DB;
