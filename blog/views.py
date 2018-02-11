@@ -3,15 +3,17 @@ from django.utils import timezone
 from blog.models import Post
 from blog.forms import PostForm
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
 
 def is_authorized(func):
-    def dec1(*args, **kwargs):
-        print("asdkodsak")
-        post = get_object_or_404(Post, pk=args[1])
+    def auth_dec(*args, **kwargs):
+        post = get_object_or_404(Post, pk=kwargs["pk"])
         if args[0].user == post.author:
-            ret_val = func(*args)
+            ret_val = func(*args, **kwargs)
             return ret_val
-        return dec1
+        else:
+            return HttpResponseForbidden()
+    return auth_dec
 
 # Create your views here.
 @login_required
@@ -42,6 +44,7 @@ def post_new(request):
     return render(request, 'blog/post_edit.html', {'form': form})
 
 @login_required
+@is_authorized
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
     if request.method == "POST":
