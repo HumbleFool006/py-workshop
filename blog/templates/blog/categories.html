@@ -1,0 +1,54 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<main class="col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3">
+
+          <section class="row text-center placeholders">
+            <div class="col-6 col-sm-3 placeholder">
+            	              <h4>General</h4>
+
+                        		<div class="font-weight-bold" style="font-size:40px;position:relative;top:20px">{{ result_dict.1 }}</div>
+            </div>
+            <div class="col-6 col-sm-3 placeholder">
+
+            	              <h4>Technology</h4>
+                        		<div class="font-weight-bold" style="font-size:40px;position:relative;top:20px">{{ result_dict.2 }}</div>
+            </div>
+            <div class="col-6 col-sm-3 placeholder">
+            	              <h4>Inspirational</h4>
+
+                        		<div class="font-weight-bold" style="font-size:40px;position:relative;top:20px">{{ result_dict.3 }}</div>
+            </div>
+            <div class="col-6 col-sm-3 placeholder">
+              <h4>Psychology</h4>
+
+                        		<div class="font-weight-bold" style="font-size:40px;position:relative;top:20px">{{ result_dict.4 }}</div>
+
+            </div>
+          </section>
+          <br><br><br>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Category</th>
+                  <th>Published On</th>
+                </tr>
+              </thead>
+              <tbody>
+              	{% if posts %}
+        {% for post in posts %}
+            <tr>
+                        <td>{{ forloop.counter }}</td>
+                  <td>{{ post.title }}</td>
+                  <td>{{ post.author }}</td>
+                  <td>{% if post.category == 3 %}Inspirational{% else %}{% if post.category == 1 %} General {% else %}{% if post.category == 2 %}Technology{% else %}Psychology{% endif %}{% endif %}{% endif %}</td>
+                  <td>{{ post.published_date }}</td>
+            </tr>
+        </main>
+        {% endfor %}
+        {% endif %}
+        {% endblock %}

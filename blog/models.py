@@ -8,7 +8,9 @@ USER = auth.get_user_model()
 CATEGORY_CHOICES= [
     (1, 'General'),
     (2, 'Technology'),
-    (3, 'Inspirational')
+    (3, 'Inspirational'),
+    (4, 'Psychology')
+
     ]
 class Post(models.Model):
     author = models.ForeignKey(USER, on_delete=models.CASCADE)

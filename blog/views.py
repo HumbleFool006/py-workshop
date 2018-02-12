@@ -62,3 +62,13 @@ def post_edit(request, pk):
         form = PostForm(instance=post)
     return render(request, 'blog/post_edit.html', {'form': form})
 
+def list_category(request, type):
+    result_dict = {}
+    if type == "0":
+        posts = Post.objects.all()
+        for i in range(1,5):
+                result_dict["{}".format(i)] = len(posts.filter(category=i))
+    
+    return render(request, 'blog/categories.html', {"result_dict":result_dict, "posts":posts})
+
+
