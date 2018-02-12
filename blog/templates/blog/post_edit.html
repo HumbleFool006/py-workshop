@@ -1,9 +1,16 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
-    <h1>New post</h1>
-    <form method="POST" class="post-form">{% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="save btn btn-default">Save</button>
+    <form method="POST" class="post-form">
+    	{% csrf_token %}
+    	<div align=center>
+        	<textarea name="title" style="border: none;font-weight: 900;" cols="90" placeholder="Enter your Title here">{{ form.title.value }}</textarea>
+    	</div>
+        <div class="justified">
+        	<textarea name="text" style="border: none" rows="20" cols="90" placeholder="Tell your Story...">{{ form.text.value }}</textarea>
+    	</div>
+    	<div class="submit-btn">
+        <button class="btn btn-success" type="submit">Save</button>
+    	</div>
     </form>
 {% endblock %}

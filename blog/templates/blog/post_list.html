@@ -3,6 +3,7 @@
 {% block content %}
     <!--<a href="{% url 'post_new' %}" class="top-menu"><button type="button" class="btn btn-primary">Write</button></a>-->
     <div class="postMain">
+        {% if posts %}
         {% for post in posts %}
             <div class="post">
                 <div class="date">
@@ -13,6 +14,9 @@
                 <p>{{ post.text|linebreaksbr }}</p>
             </div>
         {% endfor %}
+        {% else %}
+            <p> add your stroy</p>
+        {% endif %}
     </div>
 {% endblock %}
 
