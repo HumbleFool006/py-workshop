@@ -140,18 +140,17 @@ a.top-menu {
     border-radius: 50%;
 }
 
-
-
 .justified {
     text-align:center;
         font-size: 20px;
     }
 textarea {
-    border: none;
+  border: 0;
     background-color: transparent;
-    resize: none;
-    outline: none;
+/*#    resize: none;
+*/   outline: none;
     font-size: 20px;
+    border-bottom: 2px solid
 }
 
 
@@ -160,3 +159,42 @@ textarea {
     display: inline-block;
     left: 86%;
 }
+
+@media (max-width: 62em) {
+    .navbar-nav {
+        padding-top: .425rem;
+        padding-left: 0.75rem;
+    }
+    .navbar-nav .nav-item {
+        float: none;
+    }
+    .navbar-brand {
+        float: right;
+    }
+    .navbar-brand,
+    .navbar-nav .nav-item {
+        display: block;
+    }
+    .navbar-nav .nav-item + .nav-item {
+        margin-left: 0;
+    }
+    .dropdown-menu {
+        position: relative;
+        float: none;
+    }
+
+}
+
+.w3-code {
+    width: auto;
+    background-color: #fff;
+    padding: 8px 12px;
+    border-left: 4px solid #4CAF50;
+    word-wrap: break-word
+}
+
+.w3-example{background-color:#f1f1f1;padding:0.01em 16px;margin:20px 0;box-shadow:0 2px 4px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12)!important}
+.w3-example a:focus,.nextprev a:focus{box-shadow:0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}
+
+
+

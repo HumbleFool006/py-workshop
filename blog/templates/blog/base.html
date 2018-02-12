@@ -14,12 +14,12 @@
         <link rel="stylesheet" href="{% static 'css/blog.css' %}">
     </head>
     <body>
-        <div class="page-header">
+        <div class="container">
+            <div class="fixed-top">
+        <div class="page-header bg-white text-dark">
             <h1><a href="/">Samhita Blog</a></h1>
-        </div>
 
         {% if user.is_authenticated %}
-
         <div class="dropdown">
             <img src="https://www.w3schools.com/howto/img_avatar.png" onclick="myFunction()" class="avatar dropbtn"  alt="Avatar">
             <div id="myDropdown" class="dropdown-content">
@@ -27,9 +27,28 @@
                 <a href="/logout">Logout</a>
             </div>
         </div>
+       </div>
+
+
+<ul class="nav nav-tabs nav-fill">
+  <li class="nav-item">
+    <a class="nav-link active" href="/">Home</a>
+  </li>
+  <li class="nav-item bg-white">
+    <a class="nav-link" href="#">Forums</a>
+  </li>
+  <li class="nav-item bg-white">
+    <a class="nav-link" href="#">Cateogry</a>
+  </li>
+</ul>
+
         {% endif %}
+    </div>
+    <br><br><br><br><br><br><br><br><br><br>
+
         {% block content %}
         {% endblock %}
+    </div>
 
         <script>
             function myFunction() {
