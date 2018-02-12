@@ -5,19 +5,25 @@ from blog.forms import PostForm
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 
-def is_editallow(func):
+def is_authorized(func):
     def auth_dec(*args, **kwargs):
         post = get_object_or_404(Post, pk=kwargs["pk"])
         if args[0].user == post.author:
-            return func(*args, **kwargs)
+            ret_val = func(*args, **kwargs)
+            return ret_val
         else:
-            return HttpResponseForbidden("<h1 style='text-align: center;'>Not allowed.</h1>")
+            return HttpResponseForbidden()
     return auth_dec
 
+# Create your views here.
 @login_required
 def post_list(request):
     posts = Post.objects.all()
-    return render(request, 'blog/post_list.html', {'posts':posts})
+    #form = PostForm(request.POST)
+    if posts:
+        return render(request, 'blog/post_list.html', {'posts':posts})
+    else:
+        return redirect('post_new')
 
 def post_detail(request, pk):
     edit = False
@@ -28,7 +34,6 @@ def post_detail(request, pk):
 
 @login_required
 def post_new(request):
-    print("edit1")
     if request.method == "POST":
         form = PostForm(request.POST)
         if form.is_valid():
@@ -42,7 +47,7 @@ def post_new(request):
     return render(request, 'blog/post_edit.html', {'form': form})
 
 @login_required
-@is_editallow
+@is_authorized
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
     if request.method == "POST":

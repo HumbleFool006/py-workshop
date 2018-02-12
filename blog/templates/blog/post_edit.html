@@ -4,10 +4,10 @@
     <form method="POST" class="post-form">
     	{% csrf_token %}
     	<div align=center>
-        	<textarea name="title" style="border: none;font-weight: 900;" cols="90" placeholder="Enter your Title here">{{ form.title.value }}</textarea>
+        	<textarea name="title" style="border: none;font-weight: 900;" cols="90" placeholder="Enter your Title here">{{ form.title.value|default_if_none:"" }}</textarea>
     	</div>
         <div class="justified">
-        	<textarea name="text" style="border: none" rows="20" cols="90" placeholder="Tell your Story...">{{ form.text.value }}</textarea>
+        	<textarea name="text" style="border: none" rows="20" cols="90" placeholder="Tell your Story...">{{ form.text.value|default_if_none:"" }}</textarea>
     	</div>
     	<div class="submit-btn">
         <button class="btn btn-success" type="submit">Save</button>
