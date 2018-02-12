@@ -147,8 +147,8 @@ a.top-menu {
 textarea {
   border: 0;
     background-color: transparent;
-/*#    resize: none;
-*/   outline: none;
+   resize: none;
+  outline: none;
     font-size: 20px;
     border-bottom: 2px solid
 }
@@ -189,7 +189,7 @@ textarea {
     width: auto;
     background-color: #fff;
     padding: 8px 12px;
-    border-left: 4px solid #4CAF50;
+    border-left: 4px solid #4286f4;
     word-wrap: break-word
 }
 

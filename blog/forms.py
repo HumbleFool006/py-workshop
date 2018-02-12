@@ -1,14 +1,15 @@
 from django import forms
 
-from .models import Post
+from .models import Post, CATEGORY_CHOICES
+
+
 
 class PostForm(forms.ModelForm):
 
     class Meta:
         model = Post
-        fields = ('title', 'text',)
-
-
+        fields = ('title', 'text', 'category')
+    category=forms.Select(choices=CATEGORY_CHOICES)
     title = forms.CharField(
         max_length=30,
         required=True,
