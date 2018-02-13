@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Post, CATEGORY_CHOICES
+from .models import Post, CATEGORY_CHOICES, Comment
 
 
 
@@ -20,3 +20,9 @@ class PostForm(forms.ModelForm):
     text = forms.CharField(
         required=True, 
         widget=forms.TextInput(attrs={'autofocus': True,'autocapitalize':'off', 'type':'text'}))
+
+class CommentForm(forms.ModelForm):
+
+    class Meta:
+        model = Comment
+        fields = ('author', 'text',)
