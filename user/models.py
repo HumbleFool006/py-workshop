@@ -7,3 +7,4 @@ class UserInfo(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     email = models.CharField(max_length=30, null=False)
     mobile_no = models.CharField(max_length=30, null=False)
+    fbname = models.CharField(max_length=300, blank=True)
