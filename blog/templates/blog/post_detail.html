@@ -30,7 +30,7 @@
  <div class="widget-body">
   <div class="well-lg padtop0">
     <form method="POST" action="comment/">{% csrf_token %}
-        <input type="hidden" name="author" value="{{ user }}">
+        <input type="hidden" name="author" value="{{ user.first_name }}">
 <textarea name="text" style="border: none; " rows="2" cols="70" placeholder="Add you comment..."></textarea>
           </div>
           <div class="submit-btn">
