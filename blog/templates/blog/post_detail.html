@@ -4,8 +4,9 @@
     <div class="postMain">
         <div class="post">
             {% if post.published_date %}
-                <div class="date">
-                    {{ post.published_date }}
+                <div class="date"><br>
+                    <div align="right"><b> By {{ post.author.first_name }}</b> on {{ post.published_date }}</div>
+
                 </div>
             {% endif %}
             {% if user.is_authenticated %}
@@ -14,9 +15,11 @@
                 {% endif %}
             {% endif %}
             <h1>{{ post.title }}</h1>
+            <br>
+                    <hr>
+
             <p>{{ post.text|linebreaksbr }}</p>
         </div>
-        <hr>
             <br><br>
 
         <div class="widget-box pad0">

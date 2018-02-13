@@ -9,7 +9,7 @@
                         <div class="w3-example" style="margin-bottom:36px;">
                             <br>
                 <div class="date">
-                    <!--{{ post.published_date }}-->
+                    <div align="right"><b> By {{ post.author.first_name }}</b> on {{ post.published_date }}</div>
                 <h3><a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a></h3>
                 <br>
             </div>

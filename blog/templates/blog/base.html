@@ -21,7 +21,7 @@
 
         {% if user.is_authenticated %}
         <div class="dropdown">
-            <img src="http://graph.facebook.com/{{ request.fbid }}/picture" onclick="myFunction()" class="avatar dropbtn"  alt="Avatar">
+            <img src="{% if request.fbid %} http://graph.facebook.com/{{ request.fbid }}/picture {% else %}http://walyou.com/wp-content/uploads//2010/12/facebook-profile-picture-no-pic-avatar.jpg{% endif %}" onclick="myFunction()" class="avatar dropbtn"  alt="Avatar">
             <div id="myDropdown" class="dropdown-content">
                 <a href="{% url 'post_new' %}">Write</a>
                 <a href="{% url 'mypost' %}">My Posts</a>
