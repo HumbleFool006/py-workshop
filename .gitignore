@@ -4,3 +4,4 @@ venv_setup/
 pip-selfcheck.json
 .idea/
 db.sqlite3
+blog/migrations/
