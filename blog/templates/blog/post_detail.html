@@ -17,8 +17,26 @@
             <p>{{ post.text|linebreaksbr }}</p>
         </div>
         <hr>
-        <a class="btn btn-default" href="{% url 'add_comment_to_post' pk=post.pk %}">Add comment</a>
+            <br><br>
 
+        <div class="widget-box pad0">
+   <div class="widget-header" >
+
+    <h5 class="mrgl20 ng-scope" translate="">Comments</h5>
+    <hr>
+ <div class="widget-body">
+  <div class="well-lg padtop0">
+    <form method="POST" action="comment/">{% csrf_token %}
+        <input type="hidden" name="author" value="{{ user }}">
+<textarea name="text" style="border: none; " rows="2" cols="70" placeholder="Add you comment..."></textarea>
+          </div>
+          <div class="submit-btn">
+                  <button  class="btn btn-success" type="submit">Comment</button></div>
+</form>
+    </div>
+
+</div>
+</div>
 {% for comment in post.comments.all %}
     {% if user.is_authenticated or comment.approved_comment %}
     <div class="comment">
@@ -30,7 +48,7 @@
             {% endif %}
         </div>
         <strong>{{ comment.author }}</strong>
-        <p>{{ comment.text|linebreaks }}</p>
+        <p style="font-size: 17px">{{ comment.text }}</p>
     </div>
     {% endif %}
 {% empty %}
