@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect, get_list_or_404
 from django.utils import timezone
 from blog.models import Post
 from blog.forms import PostForm
@@ -71,4 +71,7 @@ def list_category(request, type):
     
     return render(request, 'blog/categories.html', {"result_dict":result_dict, "posts":posts})
 
-
+def mypost(request):
+    # posts = get_list_or_404(Post, author=request.user)
+    posts = Post.objects.filter(author=request.user)
+    return render(request, 'blog/post_list.html', {"posts": posts})

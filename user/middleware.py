@@ -11,10 +11,10 @@ class SocialAuthExceptionMiddleware(SocialAuthExceptionMiddleware):
             raise exception
 
     def process_request(self, request):
-    	if request.user.is_authenticated:
-    		try:
-    			users = UserSocialAuth.objects.get(user=request.user)
-    			request.fbid = users.uid
-    			print("as,lsdadsoasdao", request.fbid)
-    		except Exception as e:
-    			print("asodosakas",request)
+        if request.user.is_authenticated:
+            try:
+                users = UserSocialAuth.objects.get(user=request.user)
+                request.fbid = users.uid
+                print(request.fbid)
+            except Exception as e:
+                print("asodosakas",request.user)
