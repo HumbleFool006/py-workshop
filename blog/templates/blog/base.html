@@ -21,7 +21,7 @@
 
         {% if user.is_authenticated %}
         <div class="dropdown">
-            <img src="https://www.w3schools.com/howto/img_avatar.png" onclick="myFunction()" class="avatar dropbtn"  alt="Avatar">
+            <img src="http://graph.facebook.com/{{ request.fbid }}/picture" onclick="myFunction()" class="avatar dropbtn"  alt="Avatar">
             <div id="myDropdown" class="dropdown-content">
                 <a href="{% url 'post_new' %}">Write</a>
                 <a href="/logout">Logout</a>
