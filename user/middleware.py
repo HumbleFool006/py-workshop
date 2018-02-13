@@ -15,6 +15,5 @@ class SocialAuthExceptionMiddleware(SocialAuthExceptionMiddleware):
             try:
                 users = UserSocialAuth.objects.get(user=request.user)
                 request.fbid = users.uid
-                print(request.fbid)
             except Exception as e:
-                print("asodosakas",request.user)
+            	pass

@@ -11,7 +11,7 @@
             {% endif %}
             {% if user.is_authenticated %}
                 {% if edit %}
-                    <a class="btn btn-default" href="{% url 'post_edit' pk=post.pk %}">Edit</a>
+                    <a class="btn btn-default" href="{% url 'post_edit' pk=post.pk %}"><span class="fa fa-pencil"></span></a><br><br>
                 {% endif %}
             {% endif %}
             <h1>{{ post.title }}</h1>
