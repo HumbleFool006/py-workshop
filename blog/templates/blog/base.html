@@ -24,6 +24,7 @@
             <img src="http://graph.facebook.com/{{ request.fbid }}/picture" onclick="myFunction()" class="avatar dropbtn"  alt="Avatar">
             <div id="myDropdown" class="dropdown-content">
                 <a href="{% url 'post_new' %}">Write</a>
+                <a href="{% url 'mypost' %}">My Posts</a>
                 <a href="/logout">Logout</a>
             </div>
         </div>
