@@ -11,3 +11,7 @@ helm plugin install https://github.com/hypnoglow/helm-s3.git
 helm repo add paysafe-aws-charts s3://paysafe-aws-charts/charts
 helm repo list
 helm repo update
+mkdir -p ~/.helm/plugins/
+cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry
+helm registry --help
+helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb
