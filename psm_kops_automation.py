@@ -8,6 +8,10 @@ issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
 with open("cluster.json", 'r') as fp:
     data = fp.read()
 json_data = json.loads(data)
+
+json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass",
+                                                         "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota",
+                                                         "NodeRestriction", "Priority"]}
 hooks_data = {}
 json_data["spec"]["hooks"] = [hooks_data]
 hooks_data["name"] = "kops-hook-s3-config.service"
