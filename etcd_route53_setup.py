@@ -60,6 +60,7 @@ def update_dns_record(zoneid, namespace, recordtype, domain, az, ttl, value):
 
 def create_systemd_file(domain_name, private_ip):
   config = ConfigParser.RawConfigParser()
+  config.optionxform = str
   config.add_section('Unit')
   config.set('Unit', 'Description', 'etcd Daemon')
   config.set("Unit", "After", "network.target")
