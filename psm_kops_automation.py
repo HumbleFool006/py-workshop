@@ -30,10 +30,10 @@ iam_authenticator = {}
 json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator]
 k8s_ca["name"] = "k8s-ca-config.service"
 k8s_ca["before"] = ["kubelet.service"]
-k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
+k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
 iam_authenticator["name"] = "iam-auth-config.service"
 iam_authenticator["before"] = ["kubelet.service"]
-iam_authenticator["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for iam auth", "[Service]", "Type=oneshot", "ExecStart=/bin/mkdir -p /srv/kubernetes/heptio-authenticator-aws","ExecStart=/bin/aws s3 cp --recursive s3://{}/{}/addons/authenticator /srv/kubernetes/heptio-authenticator-aws/".format(s3_bucket_name, k8s_cluster_name)])
+iam_authenticator["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for iam auth", "[Service]", "Type=oneshot", "ExecStart=/bin/mkdir -p /srv/kubernetes/heptio-authenticator-aws","ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{}/{}/addons/authenticator /srv/kubernetes/heptio-authenticator-aws/".format(s3_bucket_name, k8s_cluster_name)])
 
 with open('cluster_new.json', 'w') as outfile:
     json.dump(json_data, outfile)
