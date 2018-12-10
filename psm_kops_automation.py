@@ -21,7 +21,7 @@ json_data = json.loads(data)
 #kubeapiserver for istio and aws iam authenticator
 json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass",
                                                          "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota",
-                                                         "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/aws-iam-authenticator/kubeconfig.yaml"}
+                                                         "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/heptio-authenticator-aws/kubeconfig.yaml"}
 #sshKeyName
 json_data["spec"]["sshKeyName"] = sshKeyName
 #hooks data for kops-k8s ca
