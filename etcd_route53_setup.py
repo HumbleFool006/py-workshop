@@ -2,7 +2,8 @@ import sys
 import subprocess  
 import logging  
 import boto3  
-import requests  
+import requests
+import traceback
 METADATA_API = 'http://169.254.169.254/latest'  
 
 def get_az():  
