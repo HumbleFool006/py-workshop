@@ -56,26 +56,13 @@ def update_dns_record(zoneid, namespace, recordtype, domain, az, ttl, value):
   return resp['ResponseMetadata']['HTTPStatusCode']
 
 if __name__ == '__main__':
+  _, zone_id, domain_name = sys.argv
+  namespace = "etcdpwx"
   az = get_az()
   private_ip = get_private_ip()
-  recordname = "{}-{}.{}".format(
-      args['<namespace>'], az, args['<domain>']
-  )
+  recordname = "{}-{}.{}".format( namespace, az, domain_name)
   try:
-      change_hostname(
-          args['<namespace>'],
-          az,
-          args['<domain>']
-      )
-
-      resp = update_dns_record(
-          args['<zoneid>'],
-          args['<namespace>'],
-          args['--type'],
-          args['<domain>'],
-          az,
-          args['--ttl'],
-          private_ip
-      )
+      change_hostname(namespace, az, domain_name)
+      resp = update_dns_record(zone_id, namespace, "A", domain_name, az, "300", private_ip)
   except Exception as e:
     traceback.print_exc()
