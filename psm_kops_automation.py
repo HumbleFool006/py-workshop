@@ -1,6 +1,6 @@
 import json
 import sys
-_, s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName = sys.argv
+_, s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName, role = sys.argv
 
 private_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/private/ca"])
 issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
@@ -28,6 +28,8 @@ json_data["spec"]["sshKeyName"] = sshKeyName
 k8s_ca = {}
 iam_authenticator = {}
 sudo_access_removal = {}
+json_data["spec"]["additionalPolicies"] = {}
+json_data["spec"]["additionalPolicies"]["node"] = '[ {{"Action": ["sts:AssumeRole"], "Effect": "Allow", "Resource": "{}*"}} ]'.format(role)
 json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal]
 k8s_ca["name"] = "k8s-ca-config.service"
 k8s_ca["before"] = ["kubelet.service"]
