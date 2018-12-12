@@ -1,3 +1,22 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: kube-system
+  name: heptio-authenticator-aws
+  labels:
+    k8s-app: heptio-authenticator-aws
+data:
+  config.yaml: |    
+    clusterID: k8s.cicdtest122.ps.money
+    server:
+      mapRoles:
+      - roleARN: arn:aws:iam::642731736239:role/K8s-cicd-KopsRole
+        username: helm
+        groups:
+        - system:masters
+
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
