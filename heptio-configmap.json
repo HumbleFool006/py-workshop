@@ -1,0 +1,15 @@
+{
+    "apiVersion": "v1",
+    "data": {
+        "config.yaml": "clusterID: {}\nserver:\n  mapRoles:\n  - roleARN: arn:aws:iam::{}:role/DepUser\n    username: dep-user\n    groups:\n    - system:masters\n"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+       
+        "labels": {
+            "k8s-app": "heptio-authenticator-aws"
+        },
+        "name": "heptio-authenticator-aws",
+                "namespace": "kube-system"
+       }
+}
