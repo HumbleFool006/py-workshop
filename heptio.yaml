@@ -11,7 +11,7 @@ data:
     clusterID: k8s.cicdtest122.ps.money
     server:
       mapRoles:
-      - roleARN: arn:aws:iam::642731736239:role/K8s-cicd-KopsRole
+      - roleARN: arn:aws:iam::642731736239:role/kops_role
         username: helm
         groups:
         - system:masters
