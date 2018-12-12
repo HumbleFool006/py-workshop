@@ -1,5 +1,7 @@
 import yaml
 import json
+import subprocess
+
 json_data = {}
 final_data = {}
 with open('/home/ec2-user/.kube/config', 'r') as fp:
@@ -7,7 +9,7 @@ with open('/home/ec2-user/.kube/config', 'r') as fp:
 final_data["kind"] = "Config"
 final_data["current-context"] = json_data["current-context"]
 final_data["contexts"] = [json_data["contexts"][0]]
-final_data["contexts"]["0"]["user"] = "helm.exec"
+final_data["contexts"][0]["user"] = "helm.exec"
 final_data_context = json_data["contexts"][0]
 final_data["clusters"] = [json_data["clusters"][0]]
 user_data = {}
@@ -22,3 +24,5 @@ user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1
 
 with open('kubectl_config', 'w') as fp:
   fp.write(yaml.dump(final_data, default_flow_style=False))
+
+subprocess.check_output("aws s3 cp kubectl_config s3://psm-ssh-keys/", shell=True)
