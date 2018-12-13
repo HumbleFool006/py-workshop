@@ -8,6 +8,7 @@ Usage:
     psm create cluster (--type)
     psm export k8sconfig
     psm init depbox (--s3=<bucket_name>) (--cn=<cluster_name>)
+    psm init etcd (--zoneid=<zoneid>) (--dn=<domain_name>)
     psm install helm
 
 Options:
@@ -32,6 +33,11 @@ HOME_DIR = expanduser("~")
 
 KUBE_CONFIG = os.path.join(HOME_DIR, ".kube", "config")
 
+account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
+get_az = lambda : requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text
+get_private_ip = lambda : requests.get("http://169.254.169.254/latest/meta-data/local-ipv4").text
+
+
 def log(func):
   def wrapper(*args, **kwargs):
     try:
@@ -41,8 +47,6 @@ def log(func):
       traceback.print_exc()
       sys.exit(1)
   return wrapper
-
-account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
 
 @log
 def export_k8sconfig(args_dict):
@@ -70,6 +74,10 @@ def init_depbox(args_dict):
       install_helm()
     except Exception as e:
       pass
+@log
+def init_etcd(args_dict):
+  namespace, az, private_ip, zoneid, domain_name = "etcdpwx", get_az(), get_private_ip(), args_dict["--zoneid"], args_dict["--dn"]
+  recordname = "{}-{}.{}".format( namespace, az, domain_name)
   
 @log 
 def install_helm():
@@ -141,4 +149,6 @@ if __name__ == "__main__":
   elif args.get('init', False) and args.get('depbox', False):
     init_depbox(args)
   elif args.get('install', False) and args.get('helm', False):
-    install_helm()
+    install_helm()  
+  elif args.get('init', False) and args.get('etcd', False):
+    init_etcd(args)
