@@ -1,0 +1,144 @@
+#!/usr/bin/python
+"""Simplified interface for setting PSM Infra
+
+Usage:  
+    psm edit cluster (--nat1=<nat1>) (--nat2=<nat2>) (--nat3=<nat3>) (--s3=<s3>) (--cn=<cn>) (--ssh=<ssh>) (--role=<role>)
+    psm edit cluster (--from-env)
+    psm update cluster [--yes]
+    psm create cluster (--type)
+    psm export k8sconfig
+    psm init depbox (--s3=<bucket_name>) (--cn=<cluster_name>)
+    psm install helm
+
+Options:
+    -h --help     Show this screen.
+    -v --version  Show version.
+    --type        Type of Server [default: kops]
+"""
+
+
+import json
+import sys
+import boto3
+from docopt import docopt
+import traceback
+import yaml
+import requests
+import subprocess
+import os
+from os.path import expanduser
+
+HOME_DIR = expanduser("~")
+
+KUBE_CONFIG = os.path.join(HOME_DIR, ".kube", "config")
+
+def log(func):
+  def wrapper(*args, **kwargs):
+    try:
+      func(*args, **kwargs)
+      sys.exit(0)
+    except Exception as e:
+      traceback.print_exc()
+      sys.exit(1)
+  return wrapper
+
+account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
+
+@log
+def export_k8sconfig(args_dict):
+  with open(KUBE_CONFIG, 'r') as fp:
+    json_data = yaml.load(fp)
+  del json_data["users"]
+  user_data = {}
+  json_data["users"] = [user_data]
+  user_data["name"] = json_data["contexts"][0]["context"]["user"]
+  user_data["user"] = {}
+  user_data["user"]["exec"] = {}
+  user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1"
+  user_data["user"]["exec"]["command"] = "heptio-authenticator-aws"
+  user_data["user"]["exec"]["args"] = [ "token", "-i", json_data["clusters"][0]["name"], "-r", "arn:aws:iam::{}:role/<replace yor role name alone>".format(account_id()) ]
+  user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1"
+  with open('kubectl_config', 'w') as fp:
+    fp.write(yaml.dump(json_data, default_flow_style=False))
+
+@log
+def init_depbox(args_dict):
+  while True and not os.path.isfile(KUBE_CONFIG):
+    try:
+      s3 = boto3.resource('s3')
+      s3.Bucket(args_dict["--s3"]).download_file("{}/kubectl/config".format(args_dict["--cn"]), KUBE_CONFIG)
+      install_helm()
+    except Exception as e:
+      pass
+  
+@log 
+def install_helm():
+  tiller_sa_setup()
+  helm_init_setup()
+  helm_registry_setup()
+
+@log
+def tiller_sa_setup():
+  subprocess.check_output('kubectl create serviceaccount --namespace kube-system tiller && kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller', shell=True)
+
+@log
+def helm_init_setup():
+  subprocess.check_output('helm init --service-account tiller && aws configure set region us-east-1', shell=True)
+  subprocess.check_output('helm plugin install https://github.com/hypnoglow/helm-s3.git', shell=True)
+  
+@log
+def helm_registry_setup():
+  subprocess.check_output('helm repo add paysafe-aws-charts s3://paysafe-aws-charts/charts && helm repo list && helm repo update', shell=True)
+  subprocess.check_output('mkdir -p ~/.helm/plugins/ && cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry && helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb', shell=True)
+
+@log
+def edit_cluster(args_dict):
+  s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName, role = args_dict["--s3"], args_dict["--cn"], args_dict["--nat1"], args_dict["--nat2"], args_dict["--nat3"], args_dict["--ssh"], args_dict["--role"]
+  private_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/private/ca"])
+  issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
+
+  nat_map = {}
+  nat_map[nat1.split(",")[0]] = nat1.split(",")[1]
+  nat_map[nat2.split(",")[0]] = nat2.split(",")[1]
+  nat_map[nat3.split(",")[0]] = nat3.split(",")[1]
+
+  with open(os.path.join(HOME_DIR, "cluster.json"), 'r') as fp:
+    data = fp.read()
+  json_data = json.loads(data)
+
+#egress mapping
+  [data.update({"egress": nat_map[data["id"]]}) for data in json_data["spec"]["subnets"] if data["id"] in nat_map]
+
+#kubeapiserver for istio and aws iam authenticator
+  json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass", "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota", "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/heptio-authenticator-aws/kubeconfig.yaml"}
+#sshKeyName
+  json_data["spec"]["sshKeyName"] = sshKeyName
+#hooks data for kops-k8s ca
+  k8s_ca = {}
+  iam_authenticator = {}
+  sudo_access_removal = {}
+  json_data["spec"]["additionalPolicies"] = {}
+  json_data["spec"]["additionalPolicies"]["node"] = '[{"Effect": "Allow",  "Action": ["ec2:AttachVolume", "ec2:DetachVolume", "ec2:CreateTags",  "ec2:CreateVolume", "ec2:DeleteTags", "ec2:DeleteVolume", "ec2:DescribeTags", "ec2:DescribeVolumeAttribute", "ec2:DescribeVolumesModifications", "ec2:DescribeVolumeStatus", "ec2:DescribeVolumes", "ec2:DescribeInstances"], "Resource": [ "*" ]}]'
+  json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal]
+  k8s_ca["name"] = "k8s-ca-config.service"
+  k8s_ca["before"] = ["kubelet.service"]
+  k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
+  iam_authenticator["name"] = "iam-auth-config.service"
+  iam_authenticator["before"] = ["kubelet.service"]
+  iam_authenticator["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for iam auth", "[Service]", "Type=oneshot", "ExecStart=/bin/mkdir -p /srv/kubernetes/heptio-authenticator-aws","ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{}/{}/addons/authenticator /srv/kubernetes/heptio-authenticator-aws/".format(s3_bucket_name, k8s_cluster_name)])
+  sudo_access_removal["name"] = "sudo-access-removal.service"
+  sudo_access_removal["before"] = ["kubelet.service"]
+  sudo_access_removal["manifest"] = "\n".join(["[Unit]", "Description=Remove sudo access", "[Service]", "Type=oneshot", "ExecStart=/bin/rm -f /etc/sudoers.d/*"])
+  with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
+    json.dump(json_data, outfile)
+
+if __name__ == "__main__":
+  args = docopt(__doc__, version='PSM Client 1.0')
+  if args.get('edit', False) and args.get('cluster', False):
+    edit_cluster(args)
+  elif args.get('export', False) and args.get('k8sconfig', False):
+    export_k8sconfig(args)
+  elif args.get('init', False) and args.get('depbox', False):
+    init_depbox(args)
+  elif args.get('install', False) and args.get('helm', False):
+    install_helm()
