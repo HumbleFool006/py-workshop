@@ -179,12 +179,14 @@ def install_python():
 
 @log
 def install_kubectl():
+  subprocess.call("rm -rf kubectl", shell=True)
   subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
   subprocess.call("chmod +x ./kubectl", shell=True)
   #subprocess.call("mv ./kubectl /usr/local/bin/kubectl", shell=True)
 
 @log
 def install_heptio_aws_authenticator():
+  subprocess.call("rm -rf heptio-authenticator-aws", shell=True)
   subprocess.call("wget https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.3.0/heptio-authenticator-aws_0.3.0_linux_amd64 -O heptio-authenticator-aws", shell=True)
   subprocess.call("chmod +x heptio-authenticator-aws", shell=True)
   #subprocess.call("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
