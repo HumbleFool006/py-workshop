@@ -1,7 +1,10 @@
 #!/usr/bin/python
 """Simplified interface for setting PSM Infra
 
-Usage:  
+Usage:
+    psm install kubectl
+    psm install heptio-aws-authenticator
+    psm install helm
     psm edit cluster (--nat1=<nat1>) (--nat2=<nat2>) (--nat3=<nat3>) (--s3=<s3>) (--cn=<cn>) (--ssh=<ssh>) (--role=<role>)
     psm edit cluster (--from-env)
     psm update cluster [--yes]
@@ -9,7 +12,6 @@ Usage:
     psm export k8sconfig
     psm init depbox (--s3=<bucket_name>) (--cn=<cluster_name>)
     psm init etcd (--zoneid=<zoneid>) (--dn=<domain_name>)
-    psm install helm
 
 Options:
     -h --help     Show this screen.
@@ -174,12 +176,27 @@ def install_python():
   subprocess.check_output("python -m pip install awscli", shell=True)
   subprocess.check_output("python -m pip install boto3", shell=True)
   subprocess.check_output("python -m pip install docopt", shell=True)
-  
+
+@log
+def install_kubectl():
+  subprocess.check_output("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
+  subprocess.check_output("chmod +x ./kubectl", shell=True)
+  subprocess.check_output("mv ./kubectl /usr/local/bin/kubectl", shell=True)
+
+@log
+def install_heptio_aws_authenticator():
+  subprocess.check_output("wget https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.3.0/heptio-authenticator-aws_0.3.0_linux_amd64 -O heptio-authenticator-aws", shell=True)
+  subprocess.check_output("chmod +x heptio-authenticator-aws", shell=True)
+  subprocess.check_output("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
+
 @log 
 def install_helm():
+  git_setup()
   tiller_sa_setup()
   helm_init_setup()
   helm_registry_setup()
+
+@log
 
 @log
 def tiller_sa_setup():
@@ -252,3 +269,7 @@ if __name__ == "__main__":
     install_helm()  
   elif args.get('init', False) and args.get('etcd', False):
     init_etcd(args)
+  elif args.get('install', False) and args.get('kubectl', False):
+    install_kubectl()  
+  elif args.get('install', False) and args.get('heptio-aws-authenticator', False):
+    install_heptio_aws_authenticator()  
