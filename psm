@@ -197,7 +197,7 @@ def create_cluster(args_dict):
   	--master-size {} --networking weave --vpc {} --bastion --state={} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
 	--subnets {} --utility-subnets {} --topology private --name {}".format(args_dict["--zones"], args_dict["--master-zones"], args_dict["--dns-zone"], \
 	args_dict["--node-size"], args_dict["--master-size"], args_dict["--vpc"], args_dict["--state"], args_dict["--subnets"], \
-	args_dict["--utility-subnets"], args_dict["--cn"]))
+	args_dict["--utility-subnets"], args_dict["--cn"]), shell=True)
 @log 
 def install_helm():
   git_setup()
