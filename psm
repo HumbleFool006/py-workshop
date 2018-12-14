@@ -43,6 +43,9 @@ HOME_DIR = expanduser("~")
 KUBE_CONFIG = os.path.join(HOME_DIR, ".kube", "config")
 BIN_PATH = os.path.join(HOME_DIR, "bin")
 
+PSM_CONFIG_PATH = os.path.join(HOME_DIR, ".psm", "config")
+
+
 account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
 get_az = lambda : requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text
 get_private_ip = lambda : requests.get("http://169.254.169.254/latest/meta-data/local-ipv4").text
@@ -302,6 +305,19 @@ def edit_cluster(args_dict):
   subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), args_dict["--cn"], args_dict["--s3"]), shell=True)
 
 @log
+def load_psm_config():
+  config = configparser.RawConfigParser()
+  config.read(PSM_CONFIG_PATH)
+  sections = config.sections()
+  for section in sections:
+    options = config.options(section)
+    json_dict = {}
+    for option in options:
+      json_dict[option] = config.get(section,option)
+  print(json_dict)
+
+  
+@log
 def setup_tools():
   install_helm()
   install_kops()
@@ -313,6 +329,7 @@ if __name__ == "__main__":
     args = docopt(__doc__, version='PSM Client 1.0')
   except Exception as e:
     print(__doc__)
+  load_psm_config()
   if args.get('edit', False) and args.get('cluster', False):
     edit_cluster(args)
   elif args.get('export', False) and args.get('k8sconfig', False):
