@@ -44,7 +44,7 @@ KUBE_CONFIG = os.path.join(HOME_DIR, ".kube", "config")
 BIN_PATH = os.path.join(HOME_DIR, "bin")
 
 PSM_CONFIG_PATH = os.path.join(HOME_DIR, ".psm", "config")
-
+CONFIG_DICT = {}
 
 account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
 get_az = lambda : requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text
@@ -310,11 +310,11 @@ def load_psm_config():
   config.read(PSM_CONFIG_PATH)
   sections = config.sections()
   for section in sections:
+    CONFIG_DICT[section] = {}
     options = config.options(section)
-    json_dict = {}
     for option in options:
-      json_dict[option] = config.get(section,option)
-  print(json_dict)
+      CONFIG_DICT[section][option] = config.get(section,option)
+  print(CONFIG_DICT)
 
   
 @log
