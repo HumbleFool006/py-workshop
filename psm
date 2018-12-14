@@ -224,6 +224,8 @@ def helm_registry_setup():
 
 @log
 def edit_cluster(args_dict):
+  subprocess.call("rm -rf {}".format(os.path.join(HOME_DIR, "cluster.json")), shell=True)
+  subprocess.call("kops get cluster --name {} --state s3://{} -o json >> cluster.json".format(args_dict["--cn"], args_dict["--s3"]), shell=True)
   s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName, role = args_dict["--s3"], args_dict["--cn"], args_dict["--nat1"], args_dict["--nat2"], args_dict["--nat3"], args_dict["--ssh"], args_dict["--role"]
   private_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/private/ca"])
   issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
