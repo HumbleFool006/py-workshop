@@ -199,7 +199,8 @@ def install_helm():
   helm_registry_setup()
 
 @log
-
+def git_setup():
+  subprocess.call("yum install -y git", shell=True)
 @log
 def tiller_sa_setup():
   subprocess.call('kubectl create serviceaccount --namespace kube-system tiller && kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller', shell=True)
@@ -219,7 +220,6 @@ def edit_cluster(args_dict):
   s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName, role = args_dict["--s3"], args_dict["--cn"], args_dict["--nat1"], args_dict["--nat2"], args_dict["--nat3"], args_dict["--ssh"], args_dict["--role"]
   private_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/private/ca"])
   issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
-
   nat_map = {}
   nat_map[nat1.split(",")[0]] = nat1.split(",")[1]
   nat_map[nat2.split(",")[0]] = nat2.split(",")[1]
