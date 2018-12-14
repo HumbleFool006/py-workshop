@@ -192,7 +192,7 @@ def install_heptio_aws_authenticator():
   subprocess.call("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
 
 @log
-def create_cluster():
+def create_cluster(args_dict):
   subprocess.call("kops create cluster --node-count 3 --zones {} --master-zones {} --dns-zone={} --dns private --node-size {} \
   	--master-size {} --networking weave --vpc {} --bastion --state={} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
 	--subnets {} --utility-subnets {} --topology private --name {}".format(args_dict["--zones"], args_dict["--master-zones"], args_dict["--dns-zone"], \
