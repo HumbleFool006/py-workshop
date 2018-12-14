@@ -8,7 +8,7 @@ Usage:
     psm edit cluster (--nat1=<nat1>) (--nat2=<nat2>) (--nat3=<nat3>) (--s3=<s3>) (--cn=<cn>) (--ssh=<ssh>) (--role=<role>)
     psm edit cluster (--from-env)
     psm update cluster [--yes]
-    psm create cluster (--type)
+    psm create cluster (--zones=<worker_nodes>) (--master-zones=<master_nodes>) (--dns-zone=<dns_zone_id>) (--dns=<topology>) (--node-size=<node_size>) (--master-size=<master_size>) (--subnets=<subnets>) (--utility-subnets=<utility-subnets>) (--state=<s3state>) (--vpc=<vpc_id>)
     psm export k8sconfig
     psm init depbox (--s3=<bucket_name>) (--cn=<cluster_name>)
     psm init etcd (--zoneid=<zoneid>) (--dn=<domain_name>)
@@ -191,6 +191,11 @@ def install_heptio_aws_authenticator():
   subprocess.call("chmod +x heptio-authenticator-aws", shell=True)
   subprocess.call("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
 
+@log
+def create_cluster():
+  subprocess.call("kops create cluster --node-count {} --zones {} --master-zones {} --dns-zone={} --dns private --node-size {} \
+  	--master-size {} --networking weave --vpc {} --bastion --state={} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
+	--subnets {} --utility-subnets {} --topology private --name {}".format())
 @log 
 def install_helm():
   git_setup()
@@ -274,4 +279,6 @@ if __name__ == "__main__":
   elif args.get('install', False) and args.get('kubectl', False):
     install_kubectl()  
   elif args.get('install', False) and args.get('heptio-aws-authenticator', False):
-    install_heptio_aws_authenticator()  
+    install_heptio_aws_authenticator()
+  elif args.get('create', False) and args.get('cluster', False):
+    create_cluster(args)
