@@ -6,14 +6,14 @@ Usage:
     psm install kubectl
     psm install heptio-aws-authenticator
     psm install helm
-    psm init heptio-aws-authenticator (--s3=<bucket_name>) (--cn=<cluster_name>)
-    psm edit cluster (--nat1=<nat1>) (--nat2=<nat2>) (--nat3=<nat3>) (--s3=<s3>) (--cn=<cn>) (--ssh=<ssh>) (--role=<role>)
-    psm update cluster [--yes] (--cn=<cluster_name>) (--s3=<bucket_name>)
-    psm create cluster (--zones=<worker_nodes>) (--master-zones=<master_nodes>) (--dns-zone=<dns_zone_id>) (--dns=<topology>) (--node-size=<node_size>) (--master-size=<master_size>) (--subnets=<subnets>) (--utility-subnets=<utility-subnets>) (--state=<s3state>) (--vpc=<vpc_id>) (--cn=<cluster_name>)
-    psm export k8sconfig (--s3=<bucket_name>) (--cn=<cluster_name>)
-    psm init depbox (--s3=<bucket_name>) (--cn=<cluster_name>)
-    psm init etcd (--zoneid=<zoneid>) (--dn=<domain_name>)
-
+    psm init heptio-aws-authenticator
+    psm edit cluster
+    psm update cluster [--yes]
+    psm create cluster
+    psm export k8sconfig
+    psm init depbox
+    psm init etcd
+    
 Options:
     -h --help     Show this screen.
     -v --version  Show version.
@@ -60,7 +60,7 @@ def log(func):
   return wrapper
 
 @log
-def export_k8sconfig(args_dict):
+def export_k8sconfig():
   with open(KUBE_CONFIG, 'r') as fp:
     json_data = yaml.load(fp)
   del json_data["users"]
@@ -76,15 +76,15 @@ def export_k8sconfig(args_dict):
   with open(os.path.join(HOME_DIR, 'kubectl_config'), 'w') as fp:
     fp.write(yaml.dump(json_data, default_flow_style=False))
   s3 = boto3.client('s3') 
-  s3.put_object( Bucket=args_dict["--s3"], Key='{}/kubectl/config'.format(args_dict["--cn"]), Body=yaml.dump(json_data, default_flow_style=False)) 
+  s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/kubectl/config'.format(CONFIG_DICT["kops"]["name"]), Body=yaml.dump(json_data, default_flow_style=False)) 
 
 
 @log
-def init_depbox(args_dict):
+def init_depbox():
   while True and not os.path.isfile(KUBE_CONFIG):
     try:
       s3 = boto3.resource('s3')
-      s3.Bucket(args_dict["--s3"]).download_file("{}/kubectl/config".format(args_dict["--cn"]), KUBE_CONFIG)
+      s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/kubectl/config".format(CONFIG_DICT["kops"]["name"]), KUBE_CONFIG)
       install_helm()
     except Exception as e:
       pass
@@ -201,11 +201,11 @@ def install_kubectl():
   subprocess.call("mv -f kubectl {}".format(os.path.join(BIN_PATH, "kubectl")), shell=True)
 
 @log
-def init_heptio_aws_authenticator(args_dict):
-  subprocess.call("heptio-authenticator-aws init -i {}".format(args_dict["--cn"]), shell=True)
-  subprocess.call("aws s3 cp cert.pem s3://{}/{}/addons/authenticator/cert.pem".format(args_dict["--s3"], args_dict["--cn"]), shell=True)
-  subprocess.call("aws s3 cp key.pem s3://{}/{}/addons/authenticator/key.pem".format(args_dict["--s3"], args_dict["--cn"]), shell=True)
-  subprocess.call("aws s3 cp heptio-authenticator-aws.kubeconfig s3://{}/{}/addons/authenticator/kubeconfig.yaml".format(args_dict["--s3"], args_dict["--cn"]), shell=True)
+def init_heptio_aws_authenticator():
+  subprocess.call("heptio-authenticator-aws init -i {}".format(CONFIG_DICT["kops"]["name"]), shell=True)
+  subprocess.call("aws s3 cp cert.pem s3://{}/{}/addons/authenticator/cert.pem".format(CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"]), shell=True)
+  subprocess.call("aws s3 cp key.pem s3://{}/{}/addons/authenticator/key.pem".format(CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"]), shell=True)
+  subprocess.call("aws s3 cp heptio-authenticator-aws.kubeconfig s3://{}/{}/addons/authenticator/kubeconfig.yaml".format(CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"]), shell=True)
 
 @log
 def install_heptio_aws_authenticator():
@@ -222,16 +222,24 @@ def install_kops():
   subprocess.call("mv -f kops-linux-amd64 {}".format(os.path.join(BIN_PATH, "kops")), shell=True)
 
 @log
-def create_cluster(args_dict):
-  subprocess.call("kops create cluster --node-count 3 --zones {} --master-zones {} --dns-zone={} --dns private --node-size {} \
-  	--master-size {} --networking weave --vpc {} --bastion --state={} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
-	--subnets {} --utility-subnets {} --topology private --name {}".format(args_dict["--zones"], args_dict["--master-zones"], args_dict["--dns-zone"], \
-	args_dict["--node-size"], args_dict["--master-size"], args_dict["--vpc"], args_dict["--state"], args_dict["--subnets"], \
-	args_dict["--utility-subnets"], args_dict["--cn"]), shell=True)
+def create_cluster():
+  if "kops" in CONFIG_DICT:
+    subprocess.call("kops create cluster --node-count 3 --zones {} --master-zones {} --dns-zone={} --dns private --node-size {} \
+  	--master-size {} --networking weave --vpc {} --bastion --state=s3://{} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
+	--subnets {} --utility-subnets {} --topology private --name {}".format(CONFIG_DICT["kops"]["zones"], CONFIG_DICT["kops"]["master_zones"], CONFIG_DICT["kops"]["dns_zoneid"], \
+	CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["vpc"], CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["subnets"], \
+  	CONFIG_DICT["kops"]["utility_subnets"], CONFIG_DICT["kops"]["name"]), shell=True)
+  else:
+    print("configure psm cli")
+    sys.exit(1)
 
 @log
 def update_cluster(args_dict):
-  subprocess.call("kops update cluster --name {} --state s3://{} {}".format(args_dict["--cn"], args_dict["--s3"], "--yes" if args_dict["--yes"] is True else ""), shell=True)
+  if "kops" in CONFIG_DICT:
+    subprocess.call("kops update cluster --name {} --state s3://{} {}".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], "--yes" if args_dict["--yes"] is True else ""), shell=True)
+  else:
+    print("configure psm cli")
+    sys.exit(1)
 
 @log 
 def install_helm():
@@ -244,13 +252,18 @@ def tiller_sa_setup():
   subprocess.call('kubectl create serviceaccount --namespace kube-system tiller && kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller', shell=True)
 
 @log
-def validate_cluster(args_dict):
-  while True:
-    status = subprocess.call("kops validate cluster", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    if status == 0:
-      break
-    else:
-      time.sleep(10)
+def validate_cluster():
+  if "kops" in CONFIG_DICT:
+    while True:
+      status = subprocess.call("kops validate cluster --name {}".format(CONFIG_DICT["kops"]["name"]), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+      if status == 0:
+        break
+      else:
+        time.sleep(10)
+  else:
+    print("configure psm cli")
+    sys.exit(1)
+
 @log
 def helm_init_setup():
   subprocess.call('helm init --service-account tiller && aws configure set region us-east-1', shell=True)
@@ -262,47 +275,48 @@ def helm_registry_setup():
   subprocess.call('mkdir -p ~/.helm/plugins/ && cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry && helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb', shell=True)
 
 @log
-def edit_cluster(args_dict):
-  subprocess.call("rm -rf {}".format(os.path.join(HOME_DIR, "cluster.json")), shell=True)
-  subprocess.call("kops get cluster --name {} --state s3://{} -o json >> {}".format(args_dict["--cn"], args_dict["--s3"], os.path.join(HOME_DIR, "cluster.json")), shell=True)
-  s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName, role = args_dict["--s3"], args_dict["--cn"], args_dict["--nat1"], args_dict["--nat2"], args_dict["--nat3"], args_dict["--ssh"], args_dict["--role"]
-  private_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/private/ca"])
-  issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
-  nat_map = {}
-  nat_map[nat1.split(",")[0]] = nat1.split(",")[1]
-  nat_map[nat2.split(",")[0]] = nat2.split(",")[1]
-  nat_map[nat3.split(",")[0]] = nat3.split(",")[1]
+def edit_cluster():
+  if "kops" in CONFIG_DICT:
+    subprocess.call("rm -rf {}".format(os.path.join(HOME_DIR, "cluster.json")), shell=True)
+    subprocess.call("kops get cluster --name {} --state s3://{} -o json >> {}".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], os.path.join(HOME_DIR, "cluster.json")), shell=True)
+    s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName, role = CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["nat1"], CONFIG_DICT["kops"]["nat2"],CONFIG_DICT["kops"]["nat3"], CONFIG_DICT["kops"]["ssh"], CONFIG_DICT["kops"]["role"]
+    private_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/private/ca"])
+    issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
+    nat_map = {}
+    nat_map[nat1.split(",")[0]] = nat1.split(",")[1]
+    nat_map[nat2.split(",")[0]] = nat2.split(",")[1]
+    nat_map[nat3.split(",")[0]] = nat3.split(",")[1]
 
-  with open(os.path.join(HOME_DIR, "cluster.json"), 'r') as fp:
-    data = fp.read()
-  json_data = json.loads(data)
+    with open(os.path.join(HOME_DIR, "cluster.json"), 'r') as fp:
+      data = fp.read()
+    json_data = json.loads(data)
 
 #egress mapping
-  [data.update({"egress": nat_map[data["id"]]}) for data in json_data["spec"]["subnets"] if data["id"] in nat_map]
+    [data.update({"egress": nat_map[data["id"]]}) for data in json_data["spec"]["subnets"] if data["id"] in nat_map]
 
 #kubeapiserver for istio and aws iam authenticator
-  json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass", "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota", "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/heptio-authenticator-aws/kubeconfig.yaml"}
+    json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass", "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota", "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/heptio-authenticator-aws/kubeconfig.yaml"}
 #sshKeyName
-  json_data["spec"]["sshKeyName"] = sshKeyName
+    json_data["spec"]["sshKeyName"] = sshKeyName
 #hooks data for kops-k8s ca
-  k8s_ca = {}
-  iam_authenticator = {}
-  sudo_access_removal = {}
-  json_data["spec"]["additionalPolicies"] = {}
-  json_data["spec"]["additionalPolicies"]["node"] = '[{"Effect": "Allow",  "Action": ["ec2:AttachVolume", "ec2:DetachVolume", "ec2:CreateTags",  "ec2:CreateVolume", "ec2:DeleteTags", "ec2:DeleteVolume", "ec2:DescribeTags", "ec2:DescribeVolumeAttribute", "ec2:DescribeVolumesModifications", "ec2:DescribeVolumeStatus", "ec2:DescribeVolumes", "ec2:DescribeInstances"], "Resource": [ "*" ]}]'
-  json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal]
-  k8s_ca["name"] = "k8s-ca-config.service"
-  k8s_ca["before"] = ["kubelet.service"]
-  k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
-  iam_authenticator["name"] = "iam-auth-config.service"
-  iam_authenticator["before"] = ["kubelet.service"]
-  iam_authenticator["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for iam auth", "[Service]", "Type=oneshot", "ExecStart=/bin/mkdir -p /srv/kubernetes/heptio-authenticator-aws","ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{}/{}/addons/authenticator /srv/kubernetes/heptio-authenticator-aws/".format(s3_bucket_name, k8s_cluster_name)])
-  sudo_access_removal["name"] = "sudo-access-removal.service"
-  sudo_access_removal["before"] = ["kubelet.service"]
-  sudo_access_removal["manifest"] = "\n".join(["[Unit]", "Description=Remove sudo access", "[Service]", "Type=oneshot", "ExecStart=/bin/rm -f /etc/sudoers.d/*"])
-  with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
-    json.dump(json_data, outfile)
-  subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), args_dict["--cn"], args_dict["--s3"]), shell=True)
+    k8s_ca = {}
+    iam_authenticator = {}
+    sudo_access_removal = {}
+    json_data["spec"]["additionalPolicies"] = {}
+    json_data["spec"]["additionalPolicies"]["node"] = '[{"Effect": "Allow",  "Action": ["ec2:AttachVolume", "ec2:DetachVolume", "ec2:CreateTags",  "ec2:CreateVolume", "ec2:DeleteTags", "ec2:DeleteVolume", "ec2:DescribeTags", "ec2:DescribeVolumeAttribute", "ec2:DescribeVolumesModifications", "ec2:DescribeVolumeStatus", "ec2:DescribeVolumes", "ec2:DescribeInstances"], "Resource": [ "*" ]}]'
+    json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal]
+    k8s_ca["name"] = "k8s-ca-config.service"
+    k8s_ca["before"] = ["kubelet.service"]
+    k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
+    iam_authenticator["name"] = "iam-auth-config.service"
+    iam_authenticator["before"] = ["kubelet.service"]
+    iam_authenticator["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for iam auth", "[Service]", "Type=oneshot", "ExecStart=/bin/mkdir -p /srv/kubernetes/heptio-authenticator-aws","ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{}/{}/addons/authenticator /srv/kubernetes/heptio-authenticator-aws/".format(s3_bucket_name, k8s_cluster_name)])
+    sudo_access_removal["name"] = "sudo-access-removal.service"
+    sudo_access_removal["before"] = ["kubelet.service"]
+    sudo_access_removal["manifest"] = "\n".join(["[Unit]", "Description=Remove sudo access", "[Service]", "Type=oneshot", "ExecStart=/bin/rm -f /etc/sudoers.d/*"])
+    with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
+      json.dump(json_data, outfile)
+    subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
 
 @log
 def load_psm_config():
@@ -314,8 +328,6 @@ def load_psm_config():
     options = config.options(section)
     for option in options:
       CONFIG_DICT[section][option] = config.get(section,option)
-  print(CONFIG_DICT)
-
   
 @log
 def setup_tools():
@@ -331,11 +343,11 @@ if __name__ == "__main__":
     print(__doc__)
   load_psm_config()
   if args.get('edit', False) and args.get('cluster', False):
-    edit_cluster(args)
+    edit_cluster()
   elif args.get('export', False) and args.get('k8sconfig', False):
-    export_k8sconfig(args)
+    export_k8sconfig()
   elif args.get('init', False) and args.get('depbox', False):
-    init_depbox(args)
+    init_depbox()
   elif args.get('install', False) and args.get('tools', False):
     setup_tools()
   elif args.get('install', False) and args.get('helm', False):
@@ -347,10 +359,10 @@ if __name__ == "__main__":
   elif args.get('install', False) and args.get('heptio-aws-authenticator', False):
     install_heptio_aws_authenticator()
   elif args.get('create', False) and args.get('cluster', False):
-    create_cluster(args)
+    create_cluster()
   elif args.get('update', False) and args.get('cluster', False):
     update_cluster(args)
   elif args.get('init', False) and args.get('heptio-aws-authenticator', False):
-    init_heptio_aws_authenticator(args)
+    init_heptio_aws_authenticator()
   elif args.get('validate', False) and args.get('cluster', False):
-    validate_cluster(args)
+    validate_cluster()
