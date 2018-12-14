@@ -1,5 +1,6 @@
 #!/bin/bash
 curl -LO https://bootstrap.pypa.io/get-pip.py
+yum install -y git
 python get-pip.py
 python -m pip uninstall awscli -y
 python -m pip install awscli
