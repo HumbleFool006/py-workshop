@@ -327,3 +327,5 @@ if __name__ == "__main__":
     create_cluster(args)
   elif args.get('update', False) and args.get('cluster', False):
     update_cluster(args)
+  elif args.get('init', False) and args.get('heptio-aws-authenticator', False):
+    init_heptio_aws_authenticator(args)
