@@ -230,14 +230,10 @@ def update_cluster(args_dict):
 
 @log 
 def install_helm():
-  git_setup()
   tiller_sa_setup()
   helm_init_setup()
   helm_registry_setup()
 
-@log
-def git_setup():
-  subprocess.call("yum install -y git", shell=True)
 @log
 def tiller_sa_setup():
   subprocess.call('kubectl create serviceaccount --namespace kube-system tiller && kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller', shell=True)
