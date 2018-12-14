@@ -260,6 +260,9 @@ def validate_cluster():
         break
       else:
         time.sleep(10)
+    heptio_configmap = {"kind": "ConfigMap", "data": {"config.yaml": "{{}}\nserver:\n  mapRoles:\n  - roleARN: arn:aws:iam::{{}}:role/deployment_role\n    username: {{}}\n    groups:\n    - system:masters\n".format(CONFIG_DICT["kops"]["name"], account_id(), CONFIG_DICT["kops"]["name"])}, "apiVersion": "v1", "metadata": {"labels": {"k8s-app": "heptio-authenticator-aws"}, "namespace": "kube-system", "name": "heptio-authenticator-aws"}}
+    with open("heptio_configmap.json", "w") as fp:
+      fp.write(json.dumps(heptio_configmap))
   else:
     print("configure psm cli")
     sys.exit(1)
