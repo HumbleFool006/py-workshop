@@ -2,11 +2,12 @@
 """Simplified interface for setting PSM Infra
 
 Usage:
+    psm install tools
     psm install kubectl
     psm install heptio-aws-authenticator
     psm install helm
+    psm init heptio-aws-authenticator (--s3=<bucket_name>) (--cn=<cluster_name>)
     psm edit cluster (--nat1=<nat1>) (--nat2=<nat2>) (--nat3=<nat3>) (--s3=<s3>) (--cn=<cn>) (--ssh=<ssh>) (--role=<role>)
-    psm edit cluster (--from-env)
     psm update cluster [--yes] (--cn=<cluster_name>) (--s3=<bucket_name>)
     psm create cluster (--zones=<worker_nodes>) (--master-zones=<master_nodes>) (--dns-zone=<dns_zone_id>) (--dns=<topology>) (--node-size=<node_size>) (--master-size=<master_size>) (--subnets=<subnets>) (--utility-subnets=<utility-subnets>) (--state=<s3state>) (--vpc=<vpc_id>) (--cn=<cluster_name>)
     psm export k8sconfig (--s3=<bucket_name>) (--cn=<cluster_name>)
@@ -38,6 +39,7 @@ except Exception as e:
 HOME_DIR = expanduser("~")
 
 KUBE_CONFIG = os.path.join(HOME_DIR, ".kube", "config")
+BIN_PATH = os.path.join(HOME_DIR, "bin")
 
 account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
 get_az = lambda : requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text
@@ -181,18 +183,38 @@ def install_python():
   subprocess.call("python -m pip install docopt", shell=True)
 
 @log
+def install_helm():
+  subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-helm/helm-v2.12.0-linux-amd64.tar.gz", shell=True)
+  subprocess.call("tar -zxf helm-v2.12.0-linux-amd64.tar.gz", shell=True)
+  subprocess.call("mv -f linux-amd64/helm {}".format(os.path.join(BIN_PATH, "helm")), shell=True)
+
+@log
 def install_kubectl():
   subprocess.call("rm -rf kubectl", shell=True)
   subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
-  subprocess.call("chmod +x ./kubectl", shell=True)
-  subprocess.call("mv ./kubectl /usr/local/bin/kubectl", shell=True)
+  subprocess.call("chmod +x kubectl", shell=True)
+  subprocess.call("mv -f kubectl {}".format(os.path.join(BIN_PATH, "kubectl")), shell=True)
+
+@log
+def init_heptio_aws_authenticator(args_dict):
+  subprocess.call("heptio-authenticator-aws init -i {}".format(args_dict["--cn"]), shell=True)
+  subprocess.call("aws s3 cp cert.pem s3://{}/{}/addons/authenticator/cert.pem".format(args_dict["--s3"], args_dict["--cn"]), shell=True)
+  subprocess.call("aws s3 cp key.pem s3://{}/{}/addons/authenticator/key.pem".format(args_dict["--s3"], args_dict["--cn"]), shell=True)
+  subprocess.call("aws s3 cp heptio-authenticator-aws.kubeconfig s3://{}/{}/addons/authenticator/kubeconfig.yaml".format(args_dict["--s3"], args_dict["--cn"]), shell=True)
 
 @log
 def install_heptio_aws_authenticator():
   subprocess.call("rm -rf heptio-authenticator-aws", shell=True)
   subprocess.call("wget https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.3.0/heptio-authenticator-aws_0.3.0_linux_amd64 -O heptio-authenticator-aws", shell=True)
   subprocess.call("chmod +x heptio-authenticator-aws", shell=True)
-  subprocess.call("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
+  subprocess.call("mv -f heptio-authenticator-aws {}".format(os.path.join(BIN_PATH, "heptio-authenticator-aws"), shell=True)
+
+@log
+def install_kops():
+  subprocess.call("rm -rf kops-linux-amd64", shell=True)
+  subprocess.call("curl -LO https://github.com/kubernetes/kops/releases/download/1.10.0/kops-linux-amd64", shell=True)
+  subprocess.call("chmod +x kops-linux-amd64", shell=True)
+  subprocess.call("mv -f kops-linux-amd64 {}".format(os.path.join(BIN_PATH, "kops"), shell=True)
 
 @log
 def create_cluster(args_dict):
@@ -273,7 +295,12 @@ def edit_cluster(args_dict):
     json.dump(json_data, outfile)
   subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), args_dict["--cn"], args_dict["--s3"]), shell=True)
 
-
+@log
+def setup_tools():
+  install_helm()
+  install_kops()
+  install_kubectl()
+  install_heptio_aws_authenticator()
 if __name__ == "__main__":
   args = {}
   try:
@@ -286,6 +313,8 @@ if __name__ == "__main__":
     export_k8sconfig(args)
   elif args.get('init', False) and args.get('depbox', False):
     init_depbox(args)
+  elif args.get('install', False) and args.get('tools', False):
+    setup_tools()
   elif args.get('install', False) and args.get('helm', False):
     install_helm()  
   elif args.get('init', False) and args.get('etcd', False):
