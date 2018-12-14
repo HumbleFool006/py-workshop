@@ -161,33 +161,33 @@ def update_dns_record(zoneid, namespace, recordtype, domain, az, ttl, value):
 
 @log
 def install_etcd():
-  subprocess.check_output("ETCD_VER=v3.2.7 && curl -L https://storage.googleapis.com/etcd/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz -o /tmp/etcd.tar.gz", shell=True)
-  subprocess.check_output("rm -rf /tmp/etcd && mkdir -p /tmp/etcd", shell=True)
-  subprocess.check_output("tar xzvf /tmp/etcd.tar.gz -C /tmp/etcd --strip-components=1", shell=True)
-  subprocess.check_output("cp /tmp/etcd/etcd /usr/local/bin/", shell=True)
-  subprocess.check_output("cp /tmp/etcd/etcdctl /usr/local/bin/", shell=True)
+  subprocess.call("ETCD_VER=v3.2.7 && curl -L https://storage.googleapis.com/etcd/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz -o /tmp/etcd.tar.gz", shell=True)
+  subprocess.call("rm -rf /tmp/etcd && mkdir -p /tmp/etcd", shell=True)
+  subprocess.call("tar xzvf /tmp/etcd.tar.gz -C /tmp/etcd --strip-components=1", shell=True)
+  subprocess.call("cp /tmp/etcd/etcd /usr/local/bin/", shell=True)
+  subprocess.call("cp /tmp/etcd/etcdctl /usr/local/bin/", shell=True)
 
 @log
 def install_python():
-  subprocess.check_output("curl -LO https://bootstrap.pypa.io/get-pip.py", shell=True)
-  subprocess.check_output("python get-pip.py", shell=True)
-  subprocess.check_output("rm get-pip.py", shell=True)
-  subprocess.check_output("python -m pip uninstall awscli -y", shell=True)
-  subprocess.check_output("python -m pip install awscli", shell=True)
-  subprocess.check_output("python -m pip install boto3", shell=True)
-  subprocess.check_output("python -m pip install docopt", shell=True)
+  subprocess.call("curl -LO https://bootstrap.pypa.io/get-pip.py", shell=True)
+  subprocess.call("python get-pip.py", shell=True)
+  subprocess.call("rm get-pip.py", shell=True)
+  subprocess.call("python -m pip uninstall awscli -y", shell=True)
+  subprocess.call("python -m pip install awscli", shell=True)
+  subprocess.call("python -m pip install boto3", shell=True)
+  subprocess.call("python -m pip install docopt", shell=True)
 
 @log
 def install_kubectl():
-  subprocess.check_output("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
-  subprocess.check_output("chmod +x ./kubectl", shell=True)
-  #subprocess.check_output("mv ./kubectl /usr/local/bin/kubectl", shell=True)
+  subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
+  subprocess.call("chmod +x ./kubectl", shell=True)
+  #subprocess.call("mv ./kubectl /usr/local/bin/kubectl", shell=True)
 
 @log
 def install_heptio_aws_authenticator():
-  subprocess.check_output("wget https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.3.0/heptio-authenticator-aws_0.3.0_linux_amd64 -O heptio-authenticator-aws", shell=True)
-  subprocess.check_output("chmod +x heptio-authenticator-aws", shell=True)
-  #subprocess.check_output("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
+  subprocess.call("wget https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.3.0/heptio-authenticator-aws_0.3.0_linux_amd64 -O heptio-authenticator-aws", shell=True)
+  subprocess.call("chmod +x heptio-authenticator-aws", shell=True)
+  #subprocess.call("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
 
 @log 
 def install_helm():
@@ -200,17 +200,17 @@ def install_helm():
 
 @log
 def tiller_sa_setup():
-  subprocess.check_output('kubectl create serviceaccount --namespace kube-system tiller && kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller', shell=True)
+  subprocess.call('kubectl create serviceaccount --namespace kube-system tiller && kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller', shell=True)
 
 @log
 def helm_init_setup():
-  subprocess.check_output('helm init --service-account tiller && aws configure set region us-east-1', shell=True)
-  subprocess.check_output('helm plugin install https://github.com/hypnoglow/helm-s3.git', shell=True)
+  subprocess.call('helm init --service-account tiller && aws configure set region us-east-1', shell=True)
+  subprocess.call('helm plugin install https://github.com/hypnoglow/helm-s3.git', shell=True)
   
 @log
 def helm_registry_setup():
-  subprocess.check_output('helm repo add paysafe-aws-charts s3://paysafe-aws-charts/charts && helm repo list && helm repo update', shell=True)
-  subprocess.check_output('mkdir -p ~/.helm/plugins/ && cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry && helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb', shell=True)
+  subprocess.call('helm repo add paysafe-aws-charts s3://paysafe-aws-charts/charts && helm repo list && helm repo update', shell=True)
+  subprocess.call('mkdir -p ~/.helm/plugins/ && cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry && helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb', shell=True)
 
 @log
 def edit_cluster(args_dict):
