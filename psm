@@ -11,6 +11,7 @@ Usage:
     psm update cluster [--yes]
     psm create cluster
     psm export k8sconfig
+    psm validate cluster
     psm init depbox
     psm init etcd
     
