@@ -242,7 +242,7 @@ def update_cluster(args_dict):
     sys.exit(1)
 
 @log 
-def install_helm():
+def init_helm():
   tiller_sa_setup()
   helm_init_setup()
   helm_registry_setup()
