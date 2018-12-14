@@ -204,8 +204,7 @@ def create_cluster(args_dict):
 
 @log
 def update_cluster(args_dict):
-  option = "--yes" if args_dict["--yes"] is True ""
-  subprocess.call("kops update cluster --name {} --state s3://{} {}".format(args_dict["--cn"], args_dict["--s3"], option), shell=True)
+  subprocess.call("kops update cluster --name {} --state s3://{} {}".format(args_dict["--cn"], args_dict["--s3"], "--yes" if args_dict["--yes"] is True else ""), shell=True)
 
 @log 
 def install_helm():
