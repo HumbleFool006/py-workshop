@@ -42,6 +42,8 @@ except Exception as e:
 HOME_DIR = expanduser("~")
 
 KUBE_CONFIG = os.path.join(HOME_DIR, ".kube", "config")
+SUCCESS_FLAG_FILE = os.path.join(HOME_DIR, "success.flag")
+
 BIN_PATH = os.path.join(HOME_DIR, "bin")
 
 PSM_CONFIG_PATH = os.path.join(HOME_DIR, ".psm", "config")
@@ -86,9 +88,17 @@ def init_depbox():
     try:
       s3 = boto3.resource('s3')
       s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/kubectl/config".format(CONFIG_DICT["kops"]["name"]), KUBE_CONFIG)
-      install_helm()
+      setup_tools()
     except Exception as e:
       pass
+  while True and not os.path.isfile(SUCCESS_FLAG_FILE):
+    try:
+      s3 = boto3.resource('s3')
+      s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/success.flag".format(CONFIG_DICT["kops"]["name"]), SUCCESS_FLAG_FILE)
+      init_helm()
+    except Exception as e:
+      pass
+
 @log
 def init_etcd(args_dict):
   namespace, az, private_ip, zoneid, domain_name = "etcdpwx", get_az(), get_private_ip(), args_dict["--zoneid"], args_dict["--dn"]
@@ -226,10 +236,10 @@ def install_kops():
 def create_cluster():
   if "kops" in CONFIG_DICT:
     subprocess.call("kops create cluster --node-count 3 --zones {} --master-zones {} --dns-zone={} --dns private --node-size {} \
-  	--master-size {} --networking weave --vpc {} --bastion --state=s3://{} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
-	--subnets {} --utility-subnets {} --topology private --name {}".format(CONFIG_DICT["kops"]["zones"], CONFIG_DICT["kops"]["master_zones"], CONFIG_DICT["kops"]["dns_zoneid"], \
-	CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["vpc"], CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["subnets"], \
-  	CONFIG_DICT["kops"]["utility_subnets"], CONFIG_DICT["kops"]["name"]), shell=True)
+    --master-size {} --networking weave --vpc {} --bastion --state=s3://{} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
+  --subnets {} --utility-subnets {} --topology private --name {}".format(CONFIG_DICT["kops"]["zones"], CONFIG_DICT["kops"]["master_zones"], CONFIG_DICT["kops"]["dns_zoneid"], \
+  CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["vpc"], CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["subnets"], \
+    CONFIG_DICT["kops"]["utility_subnets"], CONFIG_DICT["kops"]["name"]), shell=True)
   else:
     print("configure psm cli")
     sys.exit(1)
@@ -266,6 +276,10 @@ def validate_cluster():
       fp.write(json.dumps(heptio_configmap))
     subprocess.call("kubectl apply -f heptio_configmap.json", shell=True)
     subprocess.call("kubectl apply -f heptio_daemonset.yaml", shell=True)
+    s3 = boto3.client('s3') 
+    s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/success.flag'.format(CONFIG_DICT["kops"]["name"]), Body=yaml.dump(json_data, default_flow_style=False)) 
+
+
   else:
     print("configure psm cli")
     sys.exit(1)
