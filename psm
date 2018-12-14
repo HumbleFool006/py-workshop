@@ -9,7 +9,7 @@ Usage:
     psm edit cluster (--from-env)
     psm update cluster [--yes] (--cn=<cluster_name>) (--s3=<bucket_name>)
     psm create cluster (--zones=<worker_nodes>) (--master-zones=<master_nodes>) (--dns-zone=<dns_zone_id>) (--dns=<topology>) (--node-size=<node_size>) (--master-size=<master_size>) (--subnets=<subnets>) (--utility-subnets=<utility-subnets>) (--state=<s3state>) (--vpc=<vpc_id>) (--cn=<cluster_name>)
-    psm export k8sconfig
+    psm export k8sconfig (--s3=<bucket_name>) (--cn=<cluster_name>)
     psm init depbox (--s3=<bucket_name>) (--cn=<cluster_name>)
     psm init etcd (--zoneid=<zoneid>) (--dn=<domain_name>)
 
@@ -66,8 +66,11 @@ def export_k8sconfig(args_dict):
   user_data["user"]["exec"]["command"] = "heptio-authenticator-aws"
   user_data["user"]["exec"]["args"] = [ "token", "-i", json_data["clusters"][0]["name"], "-r", "arn:aws:iam::{}:role/<replace yor role name alone>".format(account_id()) ]
   user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1"
-  with open('kubectl_config', 'w') as fp:
+  with open(os.path.join(HOME_DIR, 'kubectl_config'), 'w') as fp:
     fp.write(yaml.dump(json_data, default_flow_style=False))
+  s3 = boto3.client('s3') 
+  s3.put_object( Bucket=args_dict["--s3"], Key='{}/kubectl/config'.format(args_dict["--cn"]), Body=yaml.dump(json_data, default_flow_style=False)) 
+
 
 @log
 def init_depbox(args_dict):
