@@ -181,13 +181,13 @@ def install_python():
 def install_kubectl():
   subprocess.check_output("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
   subprocess.check_output("chmod +x ./kubectl", shell=True)
-  subprocess.check_output("mv ./kubectl /usr/local/bin/kubectl", shell=True)
+  #subprocess.check_output("mv ./kubectl /usr/local/bin/kubectl", shell=True)
 
 @log
 def install_heptio_aws_authenticator():
   subprocess.check_output("wget https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.3.0/heptio-authenticator-aws_0.3.0_linux_amd64 -O heptio-authenticator-aws", shell=True)
   subprocess.check_output("chmod +x heptio-authenticator-aws", shell=True)
-  subprocess.check_output("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
+  #subprocess.check_output("mv heptio-authenticator-aws /usr/local/bin/heptio-authenticator-aws", shell=True)
 
 @log 
 def install_helm():
@@ -231,7 +231,8 @@ def edit_cluster(args_dict):
   [data.update({"egress": nat_map[data["id"]]}) for data in json_data["spec"]["subnets"] if data["id"] in nat_map]
 
 #kubeapiserver for istio and aws iam authenticator
-  json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass", "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota", "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/heptio-authenticator-aws/kubeconfig.yaml"}
+  json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass", "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota", "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/
+					-authenticator-aws/kubeconfig.yaml"}
 #sshKeyName
   json_data["spec"]["sshKeyName"] = sshKeyName
 #hooks data for kops-k8s ca
