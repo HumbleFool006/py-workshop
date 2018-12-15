@@ -247,7 +247,7 @@ def create_cluster():
 @log
 def update_cluster(args_dict):
   if "kops" in CONFIG_DICT:
-    subprocess.call("kops update cluster --name {} --state s3://{} {}".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], "--yes" if args_dict["--yes"] is True else ""), shell=True)
+    subprocess.call("kops update cluster --name {} --state s3://{} {} --lifecycle-overrides IAMRole=ExistsAndWarnIfChanges,IAMRolePolicy=ExistsAndWarnIfChanges,IAMInstanceProfileRole=ExistsAndWarnIfChanges".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], "--yes" if args_dict["--yes"] is True else ""), shell=True)
   else:
     print("configure psm cli")
     sys.exit(1)
@@ -337,7 +337,25 @@ def edit_cluster():
     with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
       json.dump(json_data, outfile)
     subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
+    create_ig()
 
+@log
+def create_ig():
+  if "kops" in CONFIG_DICT:
+    master_zones = CONFIG_DICT["kops"]["master_zones"]
+    master_zones_list = master_zones.split(",")
+    for index, zone in enumerate(master_zones_list):
+      subprocess.call("rm -rf {}".format(os.path.join(HOME_DIR, "masterig{}.json".format(index))), shell=True)
+      subprocess.call("kops get ig master-{} --name {} --state s3://{} -o json >> {}".format(zone, CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], os.path.join(HOME_DIR, "masterig{}.json".format(index))), shell=True)
+      with open(os.path.join(HOME_DIR, "masterig{}.json".format(index)), 'r') as fp:
+        data = fp.read()
+      json_data = json.loads(data)
+      json_data["spec"]["iam"] = {}
+      json_data["spec"]["iam"]["profile"] = "arn:aws:iam::{}:instance-profile/{}".format(account_id(), CONFIG_DICT["kops"]["master_instance_profile"])
+      with open(os.path.join(HOME_DIR, "masterig{}_new.json".format(index)), 'w') as outfile:
+        json.dump(json_data, outfile)
+      subprocess.call("kops replace -f {} ig".format(os.path.join(HOME_DIR, "masterig{}_new.json".format(index))), shell=True)
+    
 @log
 def load_psm_config():
   config = configparser.RawConfigParser()
