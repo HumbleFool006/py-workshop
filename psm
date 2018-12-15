@@ -277,7 +277,7 @@ def validate_cluster():
     subprocess.call("kubectl apply -f heptio_configmap.json", shell=True)
     subprocess.call("kubectl apply -f heptio_daemonset.yaml", shell=True)
     s3 = boto3.client('s3') 
-    s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/success.flag'.format(CONFIG_DICT["kops"]["name"]), Body=yaml.dump(json_data, default_flow_style=False)) 
+    s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/success.flag'.format(CONFIG_DICT["kops"]["name"]), Body="success") 
 
 
   else:
@@ -355,7 +355,11 @@ def create_ig():
       with open(os.path.join(HOME_DIR, "masterig{}_new.json".format(index)), 'w') as outfile:
         json.dump(json_data, outfile)
       subprocess.call("kops replace -f {} ig".format(os.path.join(HOME_DIR, "masterig{}_new.json".format(index))), shell=True)
-    
+
+
+
+
+
 @log
 def load_psm_config():
   config = configparser.RawConfigParser()
