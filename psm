@@ -98,13 +98,17 @@ def init_depbox():
       s3 = boto3.resource('s3')
       s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/success.flag".format(CONFIG_DICT["kops"]["name"]), SUCCESS_FLAG_FILE)
       status = subprocess.call("kubectl get pods", shell=True)
-      if status == 0:
-        init_helm()
-        print("helm init success")
-        break
-      else:
-        print("retrying for heptio up")
-        continue
+      while True:
+        status = subprocess.call("kubectl get pods", shell=True)
+        if status == 0:
+          init_helm()
+          print("helm init success")
+          break
+        else:
+          print("retrying for heptio up")
+          time.sleep(3)
+          continue
+      break
     except Exception as e:
       pass
 
