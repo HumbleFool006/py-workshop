@@ -74,7 +74,7 @@ def export_k8sconfig():
   user_data["user"]["exec"] = {}
   user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1"
   user_data["user"]["exec"]["command"] = "heptio-authenticator-aws"
-  user_data["user"]["exec"]["args"] = [ "token", "-i", json_data["clusters"][0]["name"], "-r", "arn:aws:iam::{}:role/<replace yor role name alone>".format(account_id()) ]
+  user_data["user"]["exec"]["args"] = [ "token", "-i", json_data["clusters"][0]["name"], "-r", "arn:aws:iam::{}:role/{}".format(account_id(), CONFIG_DICT["kops"]["depuser_role"]) ]
   user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1"
   with open(os.path.join(HOME_DIR, 'kubectl_config'), 'w') as fp:
     fp.write(yaml.dump(json_data, default_flow_style=False))
@@ -85,6 +85,8 @@ def export_k8sconfig():
 @log
 def init_depbox():
   while True and not os.path.isfile(KUBE_CONFIG):
+    if not os.path.isdir(".kube"):
+      os.path.mkdir(".kube")
     try:
       s3 = boto3.resource('s3')
       s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/kubectl/config".format(CONFIG_DICT["kops"]["name"]), KUBE_CONFIG)
