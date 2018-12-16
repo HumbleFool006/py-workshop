@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gordon-house
+  namespace: eldorado
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gordon-house
+        version: v1
+    spec:
+      containers:
+      - image: docker.io/citizenstig/httpbin
+        imagePullPolicy: IfNotPresent
+        name: gordon-house
+        ports:
+        - containerPort: 8000
