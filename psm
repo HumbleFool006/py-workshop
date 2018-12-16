@@ -97,7 +97,14 @@ def init_depbox():
     try:
       s3 = boto3.resource('s3')
       s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/success.flag".format(CONFIG_DICT["kops"]["name"]), SUCCESS_FLAG_FILE)
-      init_helm()
+      status = subprocess.call("kubectl get pods", shell=True)
+      if status == 0:
+        init_helm()
+        print("helm init success")
+        break
+      else:
+        print("retrying for heptio up")
+        continue
     except Exception as e:
       pass
 
@@ -366,10 +373,6 @@ def replace_ig(ig_type, index, zone):
   with open(os.path.join(HOME_DIR, "{}ig{}_new.json".format(ig_type, index)), 'w') as outfile:
     json.dump(json_data, outfile)
   subprocess.call("kops replace -f {} ig  --name {} --state s3://{}".format(os.path.join(HOME_DIR, "{}ig{}_new.json".format(ig_type, index)), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
-
-
-
-
 
 @log
 def load_psm_config():
