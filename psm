@@ -305,7 +305,7 @@ def helm_init_setup():
 @log
 def helm_registry_setup():
   subprocess.call('helm repo add paysafe-aws-charts s3://paysafe-aws-charts/charts && helm repo list && helm repo update', shell=True)
-  subprocess.call('mkdir -p ~/.helm/plugins/ && cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry && helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb', shell=True)
+#  subprocess.call('mkdir -p ~/.helm/plugins/ && cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry && helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb', shell=True)
 
 @log
 def edit_cluster():
