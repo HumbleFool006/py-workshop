@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: magic-virtualservice
+  namespace: default
+spec:
+  gateways:
+  - magic-gateway
+  hosts:
+  - "your.hostname.com"
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: gordon-house
+        port:
+          number: 8000
