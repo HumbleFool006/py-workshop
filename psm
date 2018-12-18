@@ -392,7 +392,7 @@ def load_psm_config():
 
 @log
 def setup_platformtools():
-  subprocess.call("bash helm_installer.sh", shell=True)
+  subprocess.call("bash helm-installer.sh", shell=True)
 
 @log
 def setup_tools():
