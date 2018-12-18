@@ -112,7 +112,8 @@ def init_depbox():
       break
     except Exception as e:
       pass
-
+  with open(".pwx_config", "r") as fp:
+    fp.write("etcdEndPoint: \'{}\'".format(CONFIG_DICT["kops"]["etcdEndPoint"]) 
 @log
 def init_etcd(args_dict):
   namespace, az, private_ip, zoneid, domain_name = "etcdpwx", get_az(), get_private_ip(), args_dict["--zoneid"], args_dict["--dn"]
