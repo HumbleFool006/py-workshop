@@ -480,7 +480,7 @@ if __name__ == "__main__":
   elif args.get('install', False) and args.get('heptio-aws-authenticator', False):
     install_heptio_aws_authenticator()
   elif args.get('create', False) and args.get('cluster', False):
-    create_kops_route53()
+    create_kopsroute()
     create_cluster()
   elif args.get('update', False) and args.get('cluster', False):
     update_cluster(args)
