@@ -16,6 +16,8 @@ Usage:
     psm init etcd
     psm setup platformtools
     psm create kopsroute
+    psm create bastionroute
+    psm create traefikroute
     
 Options:
     -h --help     Show this screen.
@@ -296,7 +298,7 @@ def validate_cluster():
     subprocess.call("kubectl apply -f heptio_daemonset.yaml", shell=True)
     s3 = boto3.client('s3') 
     s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/success.flag'.format(CONFIG_DICT["kops"]["name"]), Body="success") 
-
+    create_bastionroute()
 
   else:
     print("configure psm cli")
@@ -423,32 +425,78 @@ def load_psm_config():
 @log
 def setup_platformtools():
   subprocess.call("bash helm-installer.sh", shell=True)
+  create_traefikroute()
+
+@log
+def create_bastionroute():
   subprocess.call("aws configure set region us-west-2", shell=True)
-  # client = boto3.client('route53')
-  # elb_client = boto3.client('elb')
-  # bals = elb_client.describe_load_balancers()
-  
-  # resp = client.change_resource_record_sets(
-  #   HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
-  #   ChangeBatch = {
-  #     'Comment': 'Updating record',
-  #     'Changes': [
-  #         {
-  #             'Action': 'UPSERT',
-  #             'ResourceRecordSet': {
-  #                 'Name': "kops.cicd.ps.money",
-  #                 'Type': "A",
-  #                 'TTL': 300,
-  #                 'ResourceRecords': [
-  #                     {
-  #                         'Value': get_public_ip()
-  #                       }
-  #                   ]
-  #               }
-  #           }
-  #       ]
-  #   }
-  # )
+  client = boto3.client('route53')
+  elb_client = boto3.client('elb')
+  elb_list = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
+  for lb in  elb_list:
+    hosted_zone_id = lb["CanonicalHostedZoneNameID"]
+    lb_name = lb["LoadBalancerName"]
+    if "bastion" in lb_name:
+      dns_host_name = lb["DNSName"]
+      resp = client.change_resource_record_sets(
+        HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+        ChangeBatch={
+          'Comment': 'Updating record',
+          'Changes': [
+          {
+              'Action': 'UPSERT',
+              'ResourceRecordSet': {
+                  'Name': "bastion.cicd.ps.money",
+                  'Type': "A",
+                  'AliasTarget': {
+                'HostedZoneId': hosted_zone_id,
+                'DNSName': dns_host_name,
+                'EvaluateTargetHealth': True
+            }
+                }
+            }
+        ]
+
+      }
+      )
+      print("bastion route added")
+      break
+
+@log
+def create_traefikroute():
+  subprocess.call("aws configure set region us-west-2", shell=True)
+  subprocess.call("kubectl get svc traefik -n kube-system -o jsonpath=\"{.status.loadBalancer.ingress[0].hostname}\" > dnsname", shell=True)
+  with open("dnsname", "r") as fp:
+    dns_host_name = fp.read()
+  client = boto3.client('route53')
+  elb_client = boto3.client('elb')
+  elb_list = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
+  for lb in  elb_list:
+    hosted_zone_id = lb["CanonicalHostedZoneNameID"]
+    break
+  resp = client.change_resource_record_sets(
+    HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+    ChangeBatch={
+      'Comment': 'Updating record',
+      'Changes': [
+      {
+          'Action': 'UPSERT',
+          'ResourceRecordSet': {
+              'Name': "*.cicd.ps.money",
+              'Type': "A",
+              'AliasTarget': {
+            'HostedZoneId': hosted_zone_id,
+            'DNSName': dns_host_name,
+            'EvaluateTargetHealth': True
+        }
+            }
+        }
+    ]
+
+  }
+  )
+  print("lb route added")
+
 
 @log
 def setup_tools():
@@ -492,3 +540,7 @@ if __name__ == "__main__":
     setup_platformtools()
   elif args.get('create', False) and args.get('kopsroute', False):
     create_kopsroute()
+  elif args.get('create', False) and args.get('bastionroute', False):
+    create_bastionroute()
+  elif args.get('create', False) and args.get('traefikroute', False):
+    create_traefikroute()
