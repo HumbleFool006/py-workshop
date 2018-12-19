@@ -1,0 +1,547 @@
+#!/usr/bin/python
+"""Simplified interface for setting PSM Infra
+
+Usage:
+    psm install tools
+    psm install kubectl
+    psm install heptio-aws-authenticator
+    psm install helm
+    psm init heptio-aws-authenticator
+    psm edit cluster
+    psm update cluster [--yes]
+    psm create cluster
+    psm export k8sconfig
+    psm validate cluster
+    psm init depbox
+    psm init etcd
+    psm setup platformtools
+    psm create kopsroute
+    psm create bastionroute
+    psm create traefikroute
+    
+Options:
+    -h --help     Show this screen.
+    -v --version  Show version.
+    --type        Type of Server [default: kops]
+"""
+
+
+import json
+import sys
+import boto3
+from docopt import docopt
+import traceback
+import yaml
+import requests
+import subprocess
+import os
+from os.path import expanduser
+import time
+
+try:
+  import ConfigParser as configparser
+except Exception as e:
+  import configparser
+
+HOME_DIR = expanduser("~")
+
+KUBE_CONFIG = os.path.join(HOME_DIR, ".kube", "config")
+SUCCESS_FLAG_FILE = os.path.join(HOME_DIR, "success.flag")
+
+BIN_PATH = os.path.join(HOME_DIR, "bin")
+
+PSM_CONFIG_PATH = os.path.join(HOME_DIR, ".psm", "config")
+CONFIG_DICT = {}
+
+account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
+get_az = lambda : requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text
+get_private_ip = lambda : requests.get("http://169.254.169.254/latest/meta-data/local-ipv4").text
+get_public_ip = lambda : requests.get("http://169.254.169.254/latest/meta-data/public-ipv4").text
+
+
+def log(func):
+  def wrapper(*args, **kwargs):
+    try:
+      return func(*args, **kwargs)
+    except Exception as e:
+      traceback.print_exc()
+  return wrapper
+
+@log
+def export_k8sconfig():
+  with open(KUBE_CONFIG, 'r') as fp:
+    json_data = yaml.load(fp)
+  del json_data["users"]
+  user_data = {}
+  json_data["users"] = [user_data]
+  user_data["name"] = json_data["contexts"][0]["context"]["user"]
+  user_data["user"] = {}
+  user_data["user"]["exec"] = {}
+  user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1"
+  user_data["user"]["exec"]["command"] = "heptio-authenticator-aws"
+  user_data["user"]["exec"]["args"] = [ "token", "-i", json_data["clusters"][0]["name"], "-r", "arn:aws:iam::{}:role/{}".format(account_id(), CONFIG_DICT["kops"]["depuser_role"]) ]
+  user_data["user"]["exec"]["apiVersion"] = "client.authentication.k8s.io/v1alpha1"
+  with open(os.path.join(HOME_DIR, 'kubectl_config'), 'w') as fp:
+    fp.write(yaml.dump(json_data, default_flow_style=False))
+  s3 = boto3.client('s3') 
+  s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/kubectl/config'.format(CONFIG_DICT["kops"]["name"]), Body=yaml.dump(json_data, default_flow_style=False)) 
+
+
+@log
+def init_depbox():
+  while True and not os.path.isfile(KUBE_CONFIG):
+    if not os.path.isdir(".kube"):
+      os.path.mkdir(".kube")
+    try:
+      s3 = boto3.resource('s3')
+      s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/kubectl/config".format(CONFIG_DICT["kops"]["name"]), KUBE_CONFIG)
+      setup_tools()
+    except Exception as e:
+      pass
+  while True and not os.path.isfile(SUCCESS_FLAG_FILE):
+    try:
+      s3 = boto3.resource('s3')
+      s3.Bucket(CONFIG_DICT["kops"]["s3"]).download_file("{}/success.flag".format(CONFIG_DICT["kops"]["name"]), SUCCESS_FLAG_FILE)
+      status = subprocess.call("kubectl get pods", shell=True)
+      while True:
+        status = subprocess.call("kubectl get pods", shell=True)
+        if status == 0:
+          init_helm()
+          print("helm init success")
+          break
+        else:
+          print("retrying for heptio up")
+          time.sleep(3)
+          continue
+      break
+    except Exception as e:
+      pass
+  with open(".pwx_config", "w") as fp:
+    fp.write("etcdEndPoint: \'{}\'".format(CONFIG_DICT["kops"]["etcdendpoint"]))
+    
+@log
+def init_etcd(args_dict):
+  namespace, az, private_ip, zoneid, domain_name = "etcdpwx", get_az(), get_private_ip(), args_dict["--zoneid"], args_dict["--dn"]
+  recordname = "{}-{}.{}".format( namespace, az, domain_name)
+  #install_python()
+  install_etcd()
+  start_etcd(namespace, az, private_ip, zoneid, domain_name, recordname)
+
+@log
+def change_hostname(namespace, az, domain_name):
+  newhostname = "{}-{}.{}".format(namespace, az, domain)
+  subprocess.call(['hostname', newhostname])
+  with open('/etc/hostname', 'w+') as f:
+    f.write(newhostname)
+    f.truncate()
+    f.close()
+
+@log
+def start_etcd(namespace, az, private_ip, zoneid, domain_name, recordname):
+  change_hostname(namespace, az, domain_name)
+  resp = update_dns_record(zoneid, namespace, "A", domain_name, az, "300", private_ip)
+  create_systemd_file(domain_name, private_ip)
+  run_etcd()
+
+  
+@log
+def create_systemd_file(domain_name, private_ip):
+  config = configparser.RawConfigParser()
+  config.optionxform = str
+  config.add_section('Unit')
+  config.set('Unit', 'Description', 'etcd Daemon')
+  config.set("Unit", "After", "network.target")
+  config.add_section('Service')
+  config.set("Service", "Type", "notify")
+  config.set("Service", "Restart", "always")
+  config.set("Service", "RestartSec", "25s")
+  config.set("Service", "LimitNOFILE", "40000")
+  config.set("Service", "TimeoutStartSec", "20s")
+  config.add_section('Install')
+  config.set("Install", "WantedBy", "multi-user.target")
+  config.set("Service", "ExecStart", "/usr/local/bin/etcd -discovery-srv {} --initial-advertise-peer-urls http://{}:2380 --advertise-client-urls http://{}:2379 --listen-client-urls http://0.0.0.0:2379 --listen-peer-urls http://0.0.0.0:2380 --data-dir /var/cache/etcd/state --name %H --initial-cluster-token my-etcd-token --initial-cluster-state new".format(domain_name, private_ip, private_ip))
+  with open('/etc/systemd/system/etcd3.service', 'w') as configfile:
+    config.write(configfile)
+
+@log
+def run_etcd():
+  subprocess.call(["systemctl", "daemon-reload"])
+  subprocess.call(["systemctl", "enable", "etcd3"])
+  subprocess.call(["systemctl", "start", "etcd3"])
+  
+
+@log
+def update_dns_record(zoneid, namespace, recordtype, domain, az, ttl, value):  
+  client = boto3.client('route53')
+
+  resp = client.change_resource_record_sets(
+      HostedZoneId=zoneid,
+      ChangeBatch={
+          'Comment': 'Updating record',
+          'Changes': [
+              {
+                  'Action': 'UPSERT',
+                  'ResourceRecordSet': {
+                      'Name': "{}-{}.{}".format(
+                          namespace, az, domain
+                      ),
+                      'Type': recordtype,
+                      'TTL': int(ttl),
+                      'ResourceRecords': [
+                          {
+                              'Value': value
+                          }
+                      ]
+                  }
+              }
+          ]
+      }
+  )
+  return resp['ResponseMetadata']['HTTPStatusCode']
+  
+
+@log
+def install_etcd():
+  subprocess.call("ETCD_VER=v3.2.7 && curl -L https://storage.googleapis.com/etcd/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz -o /tmp/etcd.tar.gz", shell=True)
+  subprocess.call("rm -rf /tmp/etcd && mkdir -p /tmp/etcd", shell=True)
+  subprocess.call("tar xzvf /tmp/etcd.tar.gz -C /tmp/etcd --strip-components=1", shell=True)
+  subprocess.call("cp /tmp/etcd/etcd /usr/local/bin/", shell=True)
+  subprocess.call("cp /tmp/etcd/etcdctl /usr/local/bin/", shell=True)
+
+@log
+def install_python():
+  subprocess.call("curl -LO https://bootstrap.pypa.io/get-pip.py", shell=True)
+  subprocess.call("python get-pip.py", shell=True)
+  subprocess.call("rm get-pip.py", shell=True)
+  subprocess.call("python -m pip uninstall awscli -y", shell=True)
+  subprocess.call("python -m pip install awscli", shell=True)
+  subprocess.call("python -m pip install boto3", shell=True)
+  subprocess.call("python -m pip install docopt", shell=True)
+
+@log
+def install_helm():
+  subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz", shell=True)
+  subprocess.call("tar -zxf helm-v2.11.0-linux-amd64.tar.gz", shell=True)
+  subprocess.call("mv -f linux-amd64/helm {}".format(os.path.join(BIN_PATH, "helm")), shell=True)
+
+@log
+def install_kubectl():
+  subprocess.call("rm -rf kubectl", shell=True)
+  subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
+  subprocess.call("chmod +x kubectl", shell=True)
+  subprocess.call("mv -f kubectl {}".format(os.path.join(BIN_PATH, "kubectl")), shell=True)
+
+@log
+def init_heptio_aws_authenticator():
+  subprocess.call("heptio-authenticator-aws init -i {}".format(CONFIG_DICT["kops"]["name"]), shell=True)
+  subprocess.call("aws s3 cp cert.pem s3://{}/{}/addons/authenticator/cert.pem".format(CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"]), shell=True)
+  subprocess.call("aws s3 cp key.pem s3://{}/{}/addons/authenticator/key.pem".format(CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"]), shell=True)
+  subprocess.call("aws s3 cp heptio-authenticator-aws.kubeconfig s3://{}/{}/addons/authenticator/kubeconfig.yaml".format(CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"]), shell=True)
+
+@log
+def install_heptio_aws_authenticator():
+  subprocess.call("rm -rf heptio-authenticator-aws", shell=True)
+  subprocess.call("wget https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.3.0/heptio-authenticator-aws_0.3.0_linux_amd64 -O heptio-authenticator-aws", shell=True)
+  subprocess.call("chmod +x heptio-authenticator-aws", shell=True)
+  subprocess.call("mv -f heptio-authenticator-aws {}".format(os.path.join(BIN_PATH, "heptio-authenticator-aws")), shell=True)
+
+@log
+def install_kops():
+  subprocess.call("rm -rf kops-linux-amd64", shell=True)
+  subprocess.call("curl -LO https://github.com/kubernetes/kops/releases/download/1.10.0/kops-linux-amd64", shell=True)
+  subprocess.call("chmod +x kops-linux-amd64", shell=True)
+  subprocess.call("mv -f kops-linux-amd64 {}".format(os.path.join(BIN_PATH, "kops")), shell=True)
+
+@log
+def create_cluster():
+  if "kops" in CONFIG_DICT:
+    subprocess.call("kops create cluster --node-count 3 --zones {} --master-zones {} --dns-zone={} --dns private --node-size {} \
+    --master-size {} --networking weave --vpc {} --bastion --state=s3://{} --ssh-public-key /home/ec2-user/id_rsa.pub --cloud aws \
+  --subnets {} --utility-subnets {} --topology private --name {}".format(CONFIG_DICT["kops"]["zones"], CONFIG_DICT["kops"]["master_zones"], CONFIG_DICT["kops"]["dns_zoneid"], \
+  CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["node_size"], CONFIG_DICT["kops"]["vpc"], CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["subnets"], \
+    CONFIG_DICT["kops"]["utility_subnets"], CONFIG_DICT["kops"]["name"]), shell=True)
+  else:
+    print("configure psm cli")
+    sys.exit(1)
+
+@log
+def update_cluster(args_dict):
+  if "kops" in CONFIG_DICT:
+    subprocess.call("kops update cluster --name {} --state s3://{} {} --lifecycle-overrides IAMRole=ExistsAndWarnIfChanges,IAMRolePolicy=ExistsAndWarnIfChanges,IAMInstanceProfileRole=ExistsAndWarnIfChanges".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], "--yes" if args_dict["--yes"] is True else ""), shell=True)
+  else:
+    print("configure psm cli")
+    sys.exit(1)
+
+@log 
+def init_helm():
+  tiller_sa_setup()
+  helm_init_setup()
+  helm_registry_setup()
+
+@log
+def tiller_sa_setup():
+  subprocess.call('kubectl create serviceaccount --namespace kube-system tiller && kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller', shell=True)
+
+@log
+def validate_cluster():
+  if "kops" in CONFIG_DICT:
+    while True:
+      status = subprocess.call("kops validate cluster --name {} --state s3://{}".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+      if status == 0:
+        break
+      else:
+        time.sleep(10)
+    heptio_configmap = {"kind": "ConfigMap", "data": {"config.yaml": "clusterID: {}\nserver:\n  mapRoles:\n  - roleARN: arn:aws:iam::{}:role/{}\n    username: {}\n    groups:\n    - system:masters\n".format(CONFIG_DICT["kops"]["name"], account_id(),  CONFIG_DICT["kops"]["depuser_role"], CONFIG_DICT["kops"]["name"])}, "apiVersion": "v1", "metadata": {"labels": {"k8s-app": "heptio-authenticator-aws"}, "namespace": "kube-system", "name": "heptio-authenticator-aws"}}
+    with open("heptio_configmap.json", "w") as fp:
+      fp.write(json.dumps(heptio_configmap))
+    subprocess.call("kubectl apply -f heptio_configmap.json", shell=True)
+    subprocess.call("kubectl apply -f heptio_daemonset.yaml", shell=True)
+    s3 = boto3.client('s3') 
+    s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/success.flag'.format(CONFIG_DICT["kops"]["name"]), Body="success") 
+    create_bastionroute()
+
+  else:
+    print("configure psm cli")
+    sys.exit(1)
+
+@log
+def helm_init_setup():
+  subprocess.call('helm init --service-account tiller && aws configure set region us-east-1', shell=True)
+  subprocess.call('helm plugin install https://github.com/hypnoglow/helm-s3.git', shell=True)
+  
+@log
+def helm_registry_setup():
+  subprocess.call('helm repo add paysafe-aws-charts s3://paysafe-aws-charts/charts && helm repo list && helm repo update', shell=True)
+#  subprocess.call('mkdir -p ~/.helm/plugins/ && cd ~/.helm/plugins/ && git clone https://github.com/app-registry/appr-helm-plugin.git registry && helm registry install quay.io/coreos/alb-ingress-controller-helm --name=aws-alb', shell=True)
+
+@log
+def edit_cluster():
+  if "kops" in CONFIG_DICT:
+    subprocess.call("rm -rf {}".format(os.path.join(HOME_DIR, "cluster.json")), shell=True)
+    subprocess.call("kops get cluster --name {} --state s3://{} -o json >> {}".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], os.path.join(HOME_DIR, "cluster.json")), shell=True)
+    s3_bucket_name, k8s_cluster_name, nat1, nat2, nat3, sshKeyName, role = CONFIG_DICT["kops"]["s3"], CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["nat1"], CONFIG_DICT["kops"]["nat2"],CONFIG_DICT["kops"]["nat3"], CONFIG_DICT["kops"]["ssh"], CONFIG_DICT["kops"]["role"]
+    private_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/private/ca"])
+    issued_ca_path = "/".join([s3_bucket_name,k8s_cluster_name,"pki/issued/ca"])
+    nat_map = {}
+    nat_map[nat1.split(",")[0]] = nat1.split(",")[1]
+    nat_map[nat2.split(",")[0]] = nat2.split(",")[1]
+    nat_map[nat3.split(",")[0]] = nat3.split(",")[1]
+
+    with open(os.path.join(HOME_DIR, "cluster.json"), 'r') as fp:
+      data = fp.read()
+    json_data = json.loads(data)
+
+#egress mapping
+    [data.update({"egress": nat_map[data["id"]]}) for data in json_data["spec"]["subnets"] if data["id"] in nat_map]
+
+#kubeapiserver for istio and aws iam authenticator
+    json_data["spec"]["kubeAPIServer"] = {"admissionControl":["NamespaceLifecycle", "LimitRanger", "ServiceAccount", "PersistentVolumeLabel", "DefaultStorageClass", "DefaultTolerationSeconds", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook", "ResourceQuota", "NodeRestriction", "Priority"], "authenticationTokenWebhookConfigFile": "/srv/kubernetes/heptio-authenticator-aws/kubeconfig.yaml"}
+#sshKeyName
+    json_data["spec"]["sshKeyName"] = sshKeyName
+#hooks data for kops-k8s ca
+    k8s_ca = {}
+    iam_authenticator = {}
+    sudo_access_removal = {}
+    json_data["spec"]["additionalPolicies"] = {}
+    json_data["spec"]["additionalPolicies"]["node"] = '[{"Effect": "Allow",  "Action": ["ec2:AttachVolume", "ec2:DetachVolume", "ec2:CreateTags",  "ec2:CreateVolume", "ec2:DeleteTags", "ec2:DeleteVolume", "ec2:DescribeTags", "ec2:DescribeVolumeAttribute", "ec2:DescribeVolumesModifications", "ec2:DescribeVolumeStatus", "ec2:DescribeVolumes", "ec2:DescribeInstances"], "Resource": [ "*" ]}]'
+    json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal]
+    k8s_ca["name"] = "k8s-ca-config.service"
+    k8s_ca["before"] = ["kubelet.service"]
+    k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
+    iam_authenticator["name"] = "iam-auth-config.service"
+    iam_authenticator["before"] = ["kubelet.service"]
+    iam_authenticator["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for iam auth", "[Service]", "Type=oneshot", "ExecStart=/bin/mkdir -p /srv/kubernetes/heptio-authenticator-aws","ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{}/{}/addons/authenticator /srv/kubernetes/heptio-authenticator-aws/".format(s3_bucket_name, k8s_cluster_name)])
+    sudo_access_removal["name"] = "sudo-access-removal.service"
+    sudo_access_removal["before"] = ["kubelet.service"]
+    sudo_access_removal["manifest"] = "\n".join(["[Unit]", "Description=Remove sudo access", "[Service]", "Type=oneshot", "ExecStart=/bin/rm -f /etc/sudoers.d/*"])
+    with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
+      json.dump(json_data, outfile)
+    subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
+    create_ig()
+
+@log
+def create_ig():
+  if "kops" in CONFIG_DICT:
+    master_zones = CONFIG_DICT["kops"]["master_zones"]
+    master_zones_list = master_zones.split(",")
+    for index, zone in enumerate(master_zones_list):
+      replace_ig("master", index, zone)
+  replace_ig("nodes", index, None)
+  replace_ig("bastions", index, None)
+
+@log
+def replace_ig(ig_type, index, zone):  
+  subprocess.call("rm -rf {}".format(os.path.join(HOME_DIR, "{}ig{}.json".format(ig_type, index))), shell=True)
+  if not zone is None:
+    subprocess.call("kops get ig master-{} --name {} --state s3://{} -o json >> {}".format(zone, CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], os.path.join(HOME_DIR, "{}ig{}.json".format(ig_type, index))), shell=True)
+  else:
+    subprocess.call("kops get ig {} --name {} --state s3://{} -o json >> {}".format(ig_type, CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"], os.path.join(HOME_DIR, "{}ig{}.json".format(ig_type, index))), shell=True)
+  with open(os.path.join(HOME_DIR, "{}ig{}.json".format(ig_type, index)), 'r') as fp:
+    data = fp.read()
+  json_data = json.loads(data)
+  json_data["spec"]["iam"] = {}
+  json_data["spec"]["iam"]["profile"] = "arn:aws:iam::{}:instance-profile/{}".format(account_id(), CONFIG_DICT["kops"]["{}_instance_profile".format(ig_type)])
+  with open(os.path.join(HOME_DIR, "{}ig{}_new.json".format(ig_type, index)), 'w') as outfile:
+    json.dump(json_data, outfile)
+  subprocess.call("kops replace -f {} ig  --name {} --state s3://{}".format(os.path.join(HOME_DIR, "{}ig{}_new.json".format(ig_type, index)), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
+
+@log
+def create_kopsroute():
+  client = boto3.client('route53')
+  resp = client.change_resource_record_sets(
+    HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+    ChangeBatch = {
+      'Comment': 'Updating record',
+      'Changes': [
+          {
+              'Action': 'UPSERT',
+              'ResourceRecordSet': {
+                  'Name': "kops.cicd.ps.money",
+                  'Type': "A",
+                  'TTL': 300,
+                  'ResourceRecords': [
+                      {
+                          'Value': get_public_ip()
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+  )
+  print(resp)
+
+@log
+def load_psm_config():
+  config = configparser.RawConfigParser()
+  config.read(PSM_CONFIG_PATH)
+  sections = config.sections()
+  for section in sections:
+    CONFIG_DICT[section] = {}
+    options = config.options(section)
+    for option in options:
+      CONFIG_DICT[section][option] = config.get(section,option)
+
+@log
+def setup_platformtools():
+  subprocess.call("bash helm-installer.sh", shell=True)
+  create_traefikroute()
+
+@log
+def create_bastionroute():
+  subprocess.call("aws configure set region us-west-2", shell=True)
+  client = boto3.client('route53')
+  elb_client = boto3.client('elb')
+  elb_list = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
+  for lb in  elb_list:
+    hosted_zone_id = lb["CanonicalHostedZoneNameID"]
+    lb_name = lb["LoadBalancerName"]
+    if "bastion" in lb_name:
+      dns_host_name = lb["DNSName"]
+      resp = client.change_resource_record_sets(
+        HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+        ChangeBatch={
+          'Comment': 'Updating record',
+          'Changes': [
+          {
+              'Action': 'UPSERT',
+              'ResourceRecordSet': {
+                  'Name': "bastion.cicd.ps.money",
+                  'Type': "A",
+                  'AliasTarget': {
+                'HostedZoneId': hosted_zone_id,
+                'DNSName': dns_host_name,
+                'EvaluateTargetHealth': True
+            }
+                }
+            }
+        ]
+
+      }
+      )
+      print("bastion route added")
+      break
+
+@log
+def create_traefikroute():
+  subprocess.call("aws configure set region us-west-2", shell=True)
+  subprocess.call("kubectl get svc traefik -n kube-system -o jsonpath='{{.status.loadBalancer.ingress[0].hostname}}' > dnsname", shell=True)
+  with open("dnsname", "r") as fp:
+    dns_host_name = fp.read()
+  client = boto3.client('route53')
+  elb_client = boto3.client('elb')
+  elb_list = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
+  for lb in  elb_list:
+    hosted_zone_id = lb["CanonicalHostedZoneNameID"]
+    break
+  resp = client.change_resource_record_sets(
+    HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+    ChangeBatch={
+      'Comment': 'Updating record',
+      'Changes': [
+      {
+          'Action': 'UPSERT',
+          'ResourceRecordSet': {
+              'Name': "*.cicd.ps.money",
+              'Type': "A",
+              'AliasTarget': {
+            'HostedZoneId': hosted_zone_id,
+            'DNSName': dns_host_name,
+            'EvaluateTargetHealth': True
+        }
+            }
+        }
+    ]
+
+  }
+  )
+  print("lb route added")
+
+
+@log
+def setup_tools():
+  install_helm()
+  install_kops()
+  install_kubectl()
+  install_heptio_aws_authenticator()
+if __name__ == "__main__":
+  args = {}
+  try:
+    args = docopt(__doc__, version='PSM Client 1.0')
+  except Exception as e:
+    print(__doc__)
+  load_psm_config()
+  if args.get('edit', False) and args.get('cluster', False):
+    edit_cluster()
+  elif args.get('export', False) and args.get('k8sconfig', False):
+    export_k8sconfig()
+  elif args.get('init', False) and args.get('depbox', False):
+    init_depbox()
+  elif args.get('install', False) and args.get('tools', False):
+    setup_tools()
+  elif args.get('install', False) and args.get('helm', False):
+    install_helm()  
+  elif args.get('init', False) and args.get('etcd', False):
+    init_etcd(args)
+  elif args.get('install', False) and args.get('kubectl', False):
+    install_kubectl()  
+  elif args.get('install', False) and args.get('heptio-aws-authenticator', False):
+    install_heptio_aws_authenticator()
+  elif args.get('create', False) and args.get('cluster', False):
+    create_kopsroute()
+    create_cluster()
+  elif args.get('update', False) and args.get('cluster', False):
+    update_cluster(args)
+  elif args.get('init', False) and args.get('heptio-aws-authenticator', False):
+    init_heptio_aws_authenticator()
+  elif args.get('validate', False) and args.get('cluster', False):
+    validate_cluster()
+  elif args.get('setup', False) and args.get('platformtools', False):
+    setup_platformtools()
+  elif args.get('create', False) and args.get('kopsroute', False):
+    create_kopsroute()
+  elif args.get('create', False) and args.get('bastionroute', False):
+    create_bastionroute()
+  elif args.get('create', False) and args.get('traefikroute', False):
+    create_traefikroute()
+
