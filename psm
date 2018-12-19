@@ -422,8 +422,8 @@ def load_psm_config():
 
 @log
 def setup_platformtools():
-  subprocess.call("aws configure set region us-west-2", shell=True)
   subprocess.call("bash helm-installer.sh", shell=True)
+  subprocess.call("aws configure set region us-west-2", shell=True)
   # client = boto3.client('route53')
   # elb_client = boto3.client('elb')
   # bals = elb_client.describe_load_balancers()
