@@ -15,6 +15,7 @@ Usage:
     psm init depbox
     psm init etcd
     psm setup platformtools
+    psm create kopsroute
     
 Options:
     -h --help     Show this screen.
@@ -383,7 +384,7 @@ def replace_ig(ig_type, index, zone):
   subprocess.call("kops replace -f {} ig  --name {} --state s3://{}".format(os.path.join(HOME_DIR, "{}ig{}_new.json".format(ig_type, index)), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
 
 @log
-def create_kops_route53():
+def create_kopsroute():
   client = boto3.client('route53')
   resp = client.change_resource_record_sets(
     HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
@@ -489,3 +490,5 @@ if __name__ == "__main__":
     validate_cluster()
   elif args.get('setup', False) and args.get('platformtools', False):
     setup_platformtools()
+  elif args.get('create', False) and args.get('kopsroute', False):
+    create_kopsroute()
