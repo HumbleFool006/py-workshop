@@ -465,9 +465,8 @@ def create_bastionroute():
 @log
 def create_traefikroute():
   subprocess.call("aws configure set region us-west-2", shell=True)
-  subprocess.call("kubectl get svc traefik -n kube-system -o jsonpath='{{.status.loadBalancer.ingress[0].hostname}}' > dnsname", shell=True)
-  with open("dnsname", "r") as fp:
-    dns_host_name = fp.read()
+  subprocess.call("kubectl get svc traefik -n kube-system -o jsonpath='{{.status.loadBalancer.ingress[0].hostname}}' > dnsname", shell=True)  with open("dnsname", "r") as fp:
+  dns_host_name = fp.read()
   client = boto3.client('route53')
   elb_client = boto3.client('elb')
   elb_list = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
