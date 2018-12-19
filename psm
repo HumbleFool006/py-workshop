@@ -53,6 +53,7 @@ CONFIG_DICT = {}
 account_id = lambda : requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
 get_az = lambda : requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text
 get_private_ip = lambda : requests.get("http://169.254.169.254/latest/meta-data/local-ipv4").text
+get_public_ip = lambda : requests.get("http://169.254.169.254/latest/meta-data/public-ipv4").text
 
 
 def log(func):
@@ -282,7 +283,7 @@ def tiller_sa_setup():
 def validate_cluster():
   if "kops" in CONFIG_DICT:
     while True:
-      status = subprocess.call("kops validate cluster --name {}".format(CONFIG_DICT["kops"]["name"]), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+      status = subprocess.call("kops validate cluster --name {} --state s3://{}".format(CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
       if status == 0:
         break
       else:
@@ -382,6 +383,32 @@ def replace_ig(ig_type, index, zone):
   subprocess.call("kops replace -f {} ig  --name {} --state s3://{}".format(os.path.join(HOME_DIR, "{}ig{}_new.json".format(ig_type, index)), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
 
 @log
+def create_kops_route53():
+  client = boto3.client('route53')
+  resp = client.change_resource_record_sets(
+    HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+    ChangeBatch = {
+      'Comment': 'Updating record',
+      'Changes': [
+          {
+              'Action': 'UPSERT',
+              'ResourceRecordSet': {
+                  'Name': "kops.cicd.ps.money",
+                  'Type': "A",
+                  'TTL': 300,
+                  'ResourceRecords': [
+                      {
+                          'Value': get_public_ip()
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+  )
+  print(resp)
+
+@log
 def load_psm_config():
   config = configparser.RawConfigParser()
   config.read(PSM_CONFIG_PATH)
@@ -394,7 +421,33 @@ def load_psm_config():
 
 @log
 def setup_platformtools():
+  subprocess.call("aws configure set region us-west-2", shell=True)
   subprocess.call("bash helm-installer.sh", shell=True)
+  # client = boto3.client('route53')
+  # elb_client = boto3.client('elb')
+  # bals = elb_client.describe_load_balancers()
+  
+  # resp = client.change_resource_record_sets(
+  #   HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+  #   ChangeBatch = {
+  #     'Comment': 'Updating record',
+  #     'Changes': [
+  #         {
+  #             'Action': 'UPSERT',
+  #             'ResourceRecordSet': {
+  #                 'Name': "kops.cicd.ps.money",
+  #                 'Type': "A",
+  #                 'TTL': 300,
+  #                 'ResourceRecords': [
+  #                     {
+  #                         'Value': get_public_ip()
+  #                       }
+  #                   ]
+  #               }
+  #           }
+  #       ]
+  #   }
+  # )
 
 @log
 def setup_tools():
@@ -426,6 +479,7 @@ if __name__ == "__main__":
   elif args.get('install', False) and args.get('heptio-aws-authenticator', False):
     install_heptio_aws_authenticator()
   elif args.get('create', False) and args.get('cluster', False):
+    create_kops_route53()
     create_cluster()
   elif args.get('update', False) and args.get('cluster', False):
     update_cluster(args)
