@@ -437,7 +437,7 @@ def setup_platformtools():
 def create_bastionroute():
   subprocess.call("aws configure set region us-west-2", shell=True)
   client = boto3.client('route53')
-  elb_client = boto3.client('elb')
+  elb_client = boto3.client('elb', region_name=get_az()[:len(get_az())-1])
   elb_list = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
   for lb in  elb_list:
     hosted_zone_id = lb["CanonicalHostedZoneNameID"]
