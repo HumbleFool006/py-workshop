@@ -227,7 +227,7 @@ def install_helm():
 @log
 def install_kubectl():
   subprocess.call("rm -rf kubectl", shell=True)
-  subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kubectl", shell=True)
+  subprocess.call("curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl", shell=True)
   subprocess.call("chmod +x kubectl", shell=True)
   subprocess.call("mv -f kubectl {}".format(os.path.join(BIN_PATH, "kubectl")), shell=True)
 
@@ -248,7 +248,7 @@ def install_heptio_aws_authenticator():
 @log
 def install_kops():
   subprocess.call("rm -rf kops-linux-amd64", shell=True)
-  subprocess.call("curl -LO https://github.com/kubernetes/kops/releases/download/1.11.0/kops-linux-amd64", shell=True)
+  subprocess.call("curl -LO https://github.com/kubernetes/kops/releases/download/1.10.0/kops-linux-amd64", shell=True)
   subprocess.call("chmod +x kops-linux-amd64", shell=True)
   subprocess.call("mv -f kops-linux-amd64 {}".format(os.path.join(BIN_PATH, "kops")), shell=True)
 
