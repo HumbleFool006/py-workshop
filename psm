@@ -18,6 +18,7 @@ Usage:
     psm create kopsroute
     psm create bastionroute
     psm create traefikroute
+    psm create encryptionconfig
     
 Options:
     -h --help     Show this screen.
@@ -358,7 +359,12 @@ def edit_cluster():
       json.dump(json_data, outfile)
     subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
     create_ig()
-
+#etcd version from etcd2 to etcd3
+    json_data["spec"]["etcdClusters"][0]["version"] = "3.2.18"
+    json_data["spec"]["etcdClusters"][1]["version"] = "3.2.18"
+#encryption service for kms
+    json_data["spec"]["encryptionConfig"] = "true"
+    
 @log
 def create_ig():
   if "kops" in CONFIG_DICT:
@@ -463,6 +469,10 @@ def create_bastionroute():
       break
 
 @log
+def create_encryptionconfig():
+    subprocess.call("kops create secret encryptionconfig -f encryptionconfig.yaml --state s3://{}".format(CONFIG_DICT["kops"]["s3"]), shell=True)
+
+@log
 def create_traefikroute():
   subprocess.call("aws configure set region us-west-2", shell=True)
   subprocess.call("kubectl get svc traefik -n kube-system -o jsonpath=\"{.status.loadBalancer.ingress[0].hostname}\" > dnsname", shell=True)
@@ -531,6 +541,7 @@ if __name__ == "__main__":
     create_kopsroute()
     create_cluster()
   elif args.get('update', False) and args.get('cluster', False):
+    create_encryptionconfig()
     update_cluster(args)
   elif args.get('init', False) and args.get('heptio-aws-authenticator', False):
     init_heptio_aws_authenticator()
@@ -544,3 +555,5 @@ if __name__ == "__main__":
     create_bastionroute()
   elif args.get('create', False) and args.get('traefikroute', False):
     create_traefikroute()
+  elif args.get('create', False) and args.get('encryptionconfig', False):
+    create_encryptionconfig()
