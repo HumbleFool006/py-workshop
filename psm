@@ -470,6 +470,9 @@ def create_bastionroute():
 
 @log
 def create_encryptionconfig():
+    json_data={"kind":"EncryptionConfig", "apiVersion":"v1", "resources":[{"resources": ["secrets"]}, {"providers":[{"kms":{"name":"kmsPlugin","endpoint": "unix:///srv/kubernetes/socket.sock", "cachesize": 100}}, {"identity":{}}]}]}
+    with open ("encryptionconfig.yaml", "w") as fp:
+        fp.write(yaml.dump(json_data, default_flow_style=False))
     subprocess.call("kops create secret encryptionconfig -f encryptionconfig.yaml --state s3://{}".format(CONFIG_DICT["kops"]["s3"]), shell=True)
 
 @log
