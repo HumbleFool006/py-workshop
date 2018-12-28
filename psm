@@ -299,7 +299,7 @@ def validate_cluster():
     subprocess.call("kubectl apply -f heptio_daemonset.yaml", shell=True)
     s3 = boto3.client('s3') 
     s3.put_object( Bucket=CONFIG_DICT["kops"]["s3"], Key='{}/success.flag'.format(CONFIG_DICT["kops"]["name"]), Body="success") 
-    #create_bastionroute()
+    create_bastionroute()
 
   else:
     print("configure psm cli")
@@ -431,7 +431,7 @@ def load_psm_config():
 @log
 def setup_platformtools():
   subprocess.call("bash helm-installer.sh", shell=True)
-  #create_traefikroute()
+  create_traefikroute()
 
 @log
 def create_bastionroute():
