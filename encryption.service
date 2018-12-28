@@ -1,0 +1,12 @@
+[Unit]
+Description="kms plugin for kubernetes"
+After=network.target
+
+[Service]
+Type=simple
+User=root
+EnvironmentFile=-/etc/default/encryption
+ExecStart=/opt/main -listen=/srv/kubernetes/encryption.sock $ENC_OPTS
+
+[Install]
+WantedBy=multi-user.target
