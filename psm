@@ -491,7 +491,7 @@ def create_istio_alb_ingress():
     json_data["metadata"] = {meta_data}
     meta_data["name"] = "istio-ingress"
     meta_data["namespace"] = "istio-system"
-    meta_data["annotations"] = {"alb.ingress.kubernetes.io/scheme": "internet-facing", "alb.ingress.kubernetes.io/certificate-arn": get_certificate_arn(), "alb.ingress.kubernetes.io/subnets": CONFIG_DICT["kops"]["utility_subnets"]}
+    meta_data["annotations"] = {"alb.ingress.kubernetes.io/scheme": "internet-facing", "alb.ingress.kubernetes.io/certificate-arn": get_certificate_arn(), "alb.ingress.kubernetes.io/subnets": CONFIG_DICT["kops"]["utility_subnets"], "kubernetes.io/ingress.class": "alb"}
     json_data["spec"] = {"rules": [{"host": "api.cicd.ps.money", "http": {"paths": [{"path":"/*", "backend":{"serviceName": "istio-ingressgateway", "servicePort": 80}}]}}]}
     with open(os.path.join(HOME_DIR, 'alb_istio_ingress.yaml'), 'w') as fp:
       fp.write(yaml.dump(json_data, default_flow_style=False))
