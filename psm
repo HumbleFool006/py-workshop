@@ -475,6 +475,13 @@ def create_encryptionconfig():
     with open ("encryptionconfig.yaml", "w") as fp:
         fp.write(yaml.dump(json_data, default_flow_style=False))
     subprocess.call("kops create secret encryptionconfig -f encryptionconfig.yaml --state s3://{}".format(CONFIG_DICT["kops"]["s3"]), shell=True)
+
+@log
+def get_certificate_arn():
+    client = boto3.client("acm", region_name="us-west-2")
+    for cert in client.list_certificates()["CertificateSummaryList"]:
+        if ".cicd.ps.money" in cert["DomainName"]:
+            return cert["CertificateArn"]
 @log
 def create_istio_alb_ingress():
     json_data = {}
@@ -484,7 +491,7 @@ def create_istio_alb_ingress():
     json_data["metadata"] = [meta_data]
     meta_data["name"] = "istio-ingress"
     meta_data["namespace"] = "istio-system"
-    meta_data["annotations"] = {"alb.ingress.kubernetes.io/scheme": "internet-facing", "alb.ingress.kubernetes.io/certificate-arn": "", "alb.ingress.kubernetes.io/subnets": CONFIG_DICT["kops"]["utility_subnets"]}
+    meta_data["annotations"] = {"alb.ingress.kubernetes.io/scheme": "internet-facing", "alb.ingress.kubernetes.io/certificate-arn": get_certificate_arn(), "alb.ingress.kubernetes.io/subnets": CONFIG_DICT["kops"]["utility_subnets"]}
     meta_data["spec"] = [{"rules": [{"host": "api.cicd.ps.money", "http": {"paths": [{"path":"/*", "backend":{"serviceName": "istio-ingressgateway", "servicePort": "80"}}]}}]}]
     with open(os.path.join(HOME_DIR, 'alb_istio_ingress.yaml'), 'w') as fp:
       fp.write(yaml.dump(json_data, default_flow_style=False))
