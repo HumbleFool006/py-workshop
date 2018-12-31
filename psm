@@ -488,7 +488,7 @@ def create_istio_alb_ingress():
     meta_data = {}
     json_data["apiVersion"] = "extensions/v1beta1"
     json_data["kind"] = "Ingress"
-    json_data["metadata"] = [meta_data]
+    json_data["metadata"] = {meta_data}
     meta_data["name"] = "istio-ingress"
     meta_data["namespace"] = "istio-system"
     meta_data["annotations"] = {"alb.ingress.kubernetes.io/scheme": "internet-facing", "alb.ingress.kubernetes.io/certificate-arn": get_certificate_arn(), "alb.ingress.kubernetes.io/subnets": CONFIG_DICT["kops"]["utility_subnets"]}
