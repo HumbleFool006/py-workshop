@@ -19,6 +19,7 @@ Usage:
     psm create bastionroute
     psm create traefikroute
     psm create encryptionconfig
+    psm create istio-alb-ingress
     
 Options:
     -h --help     Show this screen.
@@ -474,6 +475,19 @@ def create_encryptionconfig():
     with open ("encryptionconfig.yaml", "w") as fp:
         fp.write(yaml.dump(json_data, default_flow_style=False))
     subprocess.call("kops create secret encryptionconfig -f encryptionconfig.yaml --state s3://{}".format(CONFIG_DICT["kops"]["s3"]), shell=True)
+@log
+def create_istio_alb_ingress():
+    json_data = {}
+    meta_data = {}
+    json_data["apiVersion"] = "extensions/v1beta1"
+    json_data["kind"] = "Ingress"
+    json_data["metadata"] = [meta_data]
+    meta_data["name"] = "istio-ingress"
+    meta_data["namespace"] = "istio-system"
+    meta_data["annotations"] = [{"alb.ingress.kubernetes.io/scheme": "internet-facing", "alb.ingress.kubernetes.io/certificate-arn": ""}]
+    meta_data["spec"] = [{"rules": [{"host": "api.cicd.ps.money", "http": {"paths": [{"path":"/*", "backend":[{"serviceName": "istio-ingressgateway", "servicePort": "80"}]}]}}]}]
+    with open(os.path.join(HOME_DIR, 'alb_istio_ingress.yaml'), 'w') as fp:
+      fp.write(yaml.dump(json_data, default_flow_style=False))
 
 @log
 def create_traefikroute():
@@ -559,3 +573,5 @@ if __name__ == "__main__":
     create_traefikroute()
   elif args.get('create', False) and args.get('encryptionconfig', False):
     create_encryptionconfig()
+  elif args.get('create', False) and args.get('istio-alb-ingress', False):
+    create_istio_alb_ingress()
