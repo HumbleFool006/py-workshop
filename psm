@@ -515,7 +515,7 @@ def create_traefikroute():
       {
           'Action': 'UPSERT',
           'ResourceRecordSet': {
-              'Name': "*.cicd.ps.money",
+              'Name': "*.cicdtools.ps.money",
               'Type': "A",
               'AliasTarget': {
             'HostedZoneId': hosted_zone_id,
