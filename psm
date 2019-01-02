@@ -480,7 +480,7 @@ def create_encryptionconfig():
 
 @log
 def get_certificate_arn():
-    client = boto3.client("acm", region_name="us-west-2")
+    client = boto3.client("acm", region_name="eu-west-2")
     for cert in client.list_certificates()["CertificateSummaryList"]:
         if ".cicd.ps.money" in cert["DomainName"]:
             return str(cert["CertificateArn"])
