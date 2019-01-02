@@ -20,6 +20,7 @@ Usage:
     psm create traefikroute
     psm create encryptionconfig
     psm create istio-alb-ingress
+    psm create approute
     
 Options:
     -h --help     Show this screen.
@@ -433,6 +434,7 @@ def load_psm_config():
 def setup_platformtools():
   subprocess.call("bash helm-installer.sh", shell=True)
   create_traefikroute()
+  create_approute()
 
 @log
 def create_bastionroute():
@@ -498,8 +500,8 @@ def create_istio_alb_ingress():
 
 @log
 def create_traefikroute():
-  subprocess.call("kubectl get svc traefik -n kube-system -o jsonpath=\"{.status.loadBalancer.ingress[0].hostname}\" > dnsname", shell=True)
-  with open("dnsname", "r") as fp:
+  subprocess.call("kubectl get svc traefik -n kube-system -o jsonpath=\"{.status.loadBalancer.ingress[0].hostname}\" > traefik_dnsname", shell=True)
+  with open("traefik_dnsname", "r") as fp:
     dns_host_name = fp.read()
   client = boto3.client('route53')
   elb_client = boto3.client('elb', region_name=get_az()[:len(get_az())-1])
@@ -528,8 +530,41 @@ def create_traefikroute():
 
   }
   )
-  print("lb route added")
+  print("traefik lb route added")
 
+@log
+def create_approute():
+  subprocess.call("kubectl get ingress istio-ingress -n istio-system -o jsonpath=\"{.status.loadBalancer.ingress[0].hostname}\" > istio_dnsname", shell=True)
+  with open("istio_dnsname", "r") as fp:
+    dns_host_name = fp.read()
+  client = boto3.client('route53')
+  elb_client = boto3.client('elb', region_name=get_az()[:len(get_az())-1])
+  elb_list = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
+  for lb in  elb_list:
+    hosted_zone_id = lb["CanonicalHostedZoneNameID"]
+    break
+  resp = client.change_resource_record_sets(
+    HostedZoneId = CONFIG_DICT["kops"]["public_zoneid"],
+    ChangeBatch={
+      'Comment': 'Updating record',
+      'Changes': [
+      {
+          'Action': 'UPSERT',
+          'ResourceRecordSet': {
+              'Name': "api.cicd.ps.money",
+              'Type': "A",
+              'AliasTarget': {
+            'HostedZoneId': hosted_zone_id,
+            'DNSName': dns_host_name,
+            'EvaluateTargetHealth': True
+        }
+            }
+        }
+    ]
+
+  }
+  )
+  print("app lb route added")
 
 @log
 def setup_tools():
@@ -582,3 +617,5 @@ if __name__ == "__main__":
     create_encryptionconfig()
   elif args.get('create', False) and args.get('istio-alb-ingress', False):
     create_istio_alb_ingress()
+  elif args.get('create', False) and args.get('approute', False):
+    create_approute()
