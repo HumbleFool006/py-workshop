@@ -345,9 +345,11 @@ def edit_cluster():
     k8s_ca = {}
     iam_authenticator = {}
     sudo_access_removal = {}
+    ca_files_from_s3 = {}
+    etcd_security_service = {}
     json_data["spec"]["additionalPolicies"] = {}
     json_data["spec"]["additionalPolicies"]["node"] = '[{"Effect": "Allow",  "Action": ["ec2:AttachVolume", "ec2:DetachVolume", "ec2:CreateTags",  "ec2:CreateVolume", "ec2:DeleteTags", "ec2:DeleteVolume", "ec2:DescribeTags", "ec2:DescribeVolumeAttribute", "ec2:DescribeVolumesModifications", "ec2:DescribeVolumeStatus", "ec2:DescribeVolumes", "ec2:DescribeInstances"], "Resource": [ "*" ]}]'
-    json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal]
+    json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal, ca_files_from_s3, etcd_security_service]
     k8s_ca["name"] = "k8s-ca-config.service"
     k8s_ca["before"] = ["kubelet.service"]
     k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
@@ -357,6 +359,16 @@ def edit_cluster():
     sudo_access_removal["name"] = "sudo-access-removal.service"
     sudo_access_removal["before"] = ["kubelet.service"]
     sudo_access_removal["manifest"] = "\n".join(["[Unit]", "Description=Remove sudo access", "[Service]", "Type=oneshot", "ExecStart=/bin/rm -f /etc/sudoers.d/*"])
+    ca_files_from_s3["name"] = "kops-hook-etcd_security-files.service"
+    ca_files_from_s3["before"] = ["kops-hook-etcd_security-bin.service"]
+    ca_files_from_s3["manifest"] = "\n".join(["[Unit]", "Description=Service to copy CA file to master nodes from S3", "[Service]", "Type=oneshot", 'ExecStart=/bin/bash -c "/usr/local/bin/aws s3 cp --recursive  s3://k8s-etcd-security /tmp/ && /bin/chmod +x /tmp/etcd_security_hook.sh"'])
+    ca_files_from_s3["roles"] = ["Master"]
+    etcd_security_service["name"] = "kops-hook-etcd_security-bin.service"
+    etcd_security_service["before"] = ["kubelet.service"]
+    etcd_security_service["manifest"] = "\n".join(["[Unit]", "Description=Service to copy CA file to master nodes from S3", "[Service]", "Type=oneshot", 'ExecStart=/bin/bash /tmp/etcd_security_hook.sh'])
+    etcd_security_service["roles"] = ["Master"]
+
+    
     with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
       json.dump(json_data, outfile)
     subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
