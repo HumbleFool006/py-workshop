@@ -371,7 +371,7 @@ def edit_cluster():
     etcd_security_service["roles"] = ["Master"]
     etcd_encryption_env_file["name"] = "etcd-encryption-service"
     etcd_encryption_env_file["before"] = ["kops-hook-etcd_security-bin.service"]
-    etcd_encryption_env_file["manifest"] = "\n".join(["[Unit]", "Description=Service to create etcd encryption env file", "[Service]", "Type=oneshot", 'ExecStart=/usr/bin/printf "ENC_OPTS=-key={} -region={}" > /etc/default/encryption'.format(CONFIG_DICT["kops"]["kmsarn"], CONFIG_DICT["kops"]["kmsregion"])])
+    etcd_encryption_env_file["manifest"] = "\n".join(["[Unit]", "Description=Service to create etcd encryption env file", "[Service]", "Type=oneshot", 'ExecStart=/bin/bash -c "/usr/bin/printf \"ENC_OPTS=-key={} -region={}\" > /etc/default/encryption"'.format(CONFIG_DICT["kops"]["kmsarn"], CONFIG_DICT["kops"]["kmsregion"])])
     etcd_encryption_env_file["roles"] = ["Master"]
     #etcd version from etcd2 to etcd3
     json_data["spec"]["etcdClusters"][0]["version"] = "3.2.18"
