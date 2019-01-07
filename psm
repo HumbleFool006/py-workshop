@@ -351,7 +351,7 @@ def edit_cluster():
     etcd_encryption_env_file = {}
     json_data["spec"]["additionalPolicies"] = {}
     json_data["spec"]["additionalPolicies"]["node"] = '[{"Effect": "Allow",  "Action": ["ec2:AttachVolume", "ec2:DetachVolume", "ec2:CreateTags",  "ec2:CreateVolume", "ec2:DeleteTags", "ec2:DeleteVolume", "ec2:DescribeTags", "ec2:DescribeVolumeAttribute", "ec2:DescribeVolumesModifications", "ec2:DescribeVolumeStatus", "ec2:DescribeVolumes", "ec2:DescribeInstances"], "Resource": [ "*" ]}]'
-    json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal, ca_files_from_s3, etcd_security_service, etcd_encryption_service, etcd_encryption_env_file]
+    json_data["spec"]["hooks"] = [k8s_ca, iam_authenticator, sudo_access_removal, ca_files_from_s3, etcd_security_service, etcd_encryption_env_file]
     k8s_ca["name"] = "k8s-ca-config.service"
     k8s_ca["before"] = ["kubelet.service"]
     k8s_ca["manifest"] = "\n".join(["[Unit]", "Description=Copy config files from s3 for k8s-ca", "[Service]", "Type=oneshot", "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(private_ca_path), "ExecStart=/usr/local/bin/aws s3 cp --recursive s3://{} /tmp".format(issued_ca_path)])
@@ -375,16 +375,16 @@ def edit_cluster():
     etcd_encryption_env_file["roles"] = ["Master"]
     #etcd version from etcd2 to etcd3
     json_data["spec"]["etcdClusters"][0]["version"] = "3.2.18"
-    json_data["spec"]["etcdClusters"][0]["enableEtcdTLS"] = "true"
+    json_data["spec"]["etcdClusters"][0]["enableEtcdTLS"] = True
     json_data["spec"]["etcdClusters"][1]["version"] = "3.2.18"
-    json_data["spec"]["etcdClusters"][1]["enableEtcdTLS"] = "true"
+    json_data["spec"]["etcdClusters"][1]["enableEtcdTLS"] = True
 #encryption service for kms
-    json_data["spec"]["encryptionConfig"] = "true"
+    json_data["spec"]["encryptionConfig"] = True
 #disable anonymous auth
     json_data["spec"]["kubelet"] = {}
-    json_data["spec"]["kubelet"]["anonymousAuth"] = "false"
+    json_data["spec"]["kubelet"]["anonymousAuth"] = False
     json_data["spec"]["kubelet"]["authorizationMode"] = "Webhook"
-    json_data["spec"]["kubelet"]["authenticationTokenWebhook"] = "true"  
+    json_data["spec"]["kubelet"]["authenticationTokenWebhook"] = True  
     json_data["spec"]["kubelet"]["readOnlyPort"] = 0
     
     with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
