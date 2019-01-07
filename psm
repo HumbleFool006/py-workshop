@@ -590,11 +590,7 @@ def create_approute():
 
   }
   )
-  print("app lb route added")
-
-@log
-def install_encryptionconfig():
-    
+  print("app lb route added")    
 
 @log
 def setup_tools():
