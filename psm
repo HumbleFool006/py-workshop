@@ -363,9 +363,17 @@ def edit_cluster():
     create_ig()
 #etcd version from etcd2 to etcd3
     json_data["spec"]["etcdClusters"][0]["version"] = "3.2.18"
+    json_data["spec"]["etcdClusters"][0]["enableEtcdTLS"] = "true"
     json_data["spec"]["etcdClusters"][1]["version"] = "3.2.18"
+    json_data["spec"]["etcdClusters"][1]["enableEtcdTLS"] = "true"
 #encryption service for kms
     json_data["spec"]["encryptionConfig"] = "true"
+#disable anonymous auth
+    json_data["spec"]["kubelet"] = {}
+    json_data["spec"]["kubelet"]["anonymousAuth"] = "false"
+    json_data["spec"]["kubelet"]["authorizationMode"] = "Webhook"
+    json_data["spec"]["kubelet"]["authenticationTokenWebhook"] = "true"  
+    json_data["spec"]["kubelet"]["readOnlyPort"] = 0
     
 @log
 def create_ig():
@@ -565,6 +573,10 @@ def create_approute():
   }
   )
   print("app lb route added")
+
+@log
+def install_encryptionconfig():
+    
 
 @log
 def setup_tools():
