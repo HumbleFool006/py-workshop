@@ -412,7 +412,7 @@ def create_kopsroute():
           {
               'Action': 'UPSERT',
               'ResourceRecordSet': {
-                  'Name': "kops.cicd.ps.money",
+                  'Name': "kops.cicd{}.ps.money".format(CONFIG_DICT["kops"]["version"]),
                   'Type': "A",
                   'TTL': 300,
                   'ResourceRecords': [
@@ -525,7 +525,7 @@ def create_traefikroute():
       {
           'Action': 'UPSERT',
           'ResourceRecordSet': {
-              'Name': "*.cicdtools.ps.money",
+              'Name': "*.cicdtools{}.ps.money".format(CONFIG_DICT["kops"]["version"]),
               'Type': "A",
               'AliasTarget': {
             'HostedZoneId': hosted_zone_id,
@@ -559,7 +559,7 @@ def create_approute():
       {
           'Action': 'UPSERT',
           'ResourceRecordSet': {
-              'Name': "api.cicd.ps.money",
+              'Name': "api.cicd{}.ps.money".format(CONFIG_DICT["kops"]["version"]),
               'Type': "A",
               'AliasTarget': {
             'HostedZoneId': hosted_zone_id,
