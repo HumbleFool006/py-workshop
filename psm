@@ -373,13 +373,7 @@ def edit_cluster():
     etcd_encryption_env_file["before"] = ["kops-hook-etcd_security-bin.service"]
     etcd_encryption_env_file["manifest"] = "\n".join(["[Unit]", "Description=Service to create etcd encryption env file", "[Service]", "Type=oneshot", 'ExecStart=/usr/bin/printf "ENC_OPTS=-key={} -region={}" > /etc/default/encryption'.format(CONFIG_DICT["kops"]["kmsarn"], CONFIG_DICT["kops"]["kmsregion"])])
     etcd_encryption_env_file["roles"] = ["Master"]
-
-    
-    with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
-      json.dump(json_data, outfile)
-    subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
-    create_ig()
-#etcd version from etcd2 to etcd3
+    #etcd version from etcd2 to etcd3
     json_data["spec"]["etcdClusters"][0]["version"] = "3.2.18"
     json_data["spec"]["etcdClusters"][0]["enableEtcdTLS"] = "true"
     json_data["spec"]["etcdClusters"][1]["version"] = "3.2.18"
@@ -392,6 +386,11 @@ def edit_cluster():
     json_data["spec"]["kubelet"]["authorizationMode"] = "Webhook"
     json_data["spec"]["kubelet"]["authenticationTokenWebhook"] = "true"  
     json_data["spec"]["kubelet"]["readOnlyPort"] = 0
+    
+    with open(os.path.join(HOME_DIR, 'cluster_new.json'), 'w') as outfile:
+      json.dump(json_data, outfile)
+    subprocess.call("kops replace -f {} --name {} --state s3://{}".format(os.path.join(HOME_DIR, "cluster_new.json"), CONFIG_DICT["kops"]["name"], CONFIG_DICT["kops"]["s3"]), shell=True)
+    create_ig()
     
 @log
 def create_ig():
