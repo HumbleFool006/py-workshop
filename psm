@@ -592,6 +592,13 @@ def create_approute():
   print("app lb route added")    
 
 @log
+def create_kubeapiadmin():
+  json_data = {"roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name":  "system:kubelet-api-admin"}, "kind": "ClusterRoleBinding", "subjects": [{"apiGroup":  "rbac.authorization.k8s.io", "kind": "User", "name": "kubelet-api"}], "apiVersion":  "rbac.authorization.k8s.io/v1", "metadata": {"name": "kubelet-api-admin"}}
+  with open(os.path.join(HOME_DIR, 'kubelet_api_admin.yaml'), 'w') as fp:
+    fp.write(yaml.dump(json_data, default_flow_style=False))
+  subprocess.call("kubectl apply -f kubelet_api_admin.yaml", shell=True)
+    
+@log
 def setup_tools():
   install_helm()
   install_kops()
@@ -630,6 +637,7 @@ if __name__ == "__main__":
     init_heptio_aws_authenticator()
   elif args.get('validate', False) and args.get('cluster', False):
     validate_cluster()
+    create_kubeapiadmin()
   elif args.get('setup', False) and args.get('platformtools', False):
     setup_platformtools()
   elif args.get('create', False) and args.get('kopsroute', False):
