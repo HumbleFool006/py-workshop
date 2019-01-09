@@ -480,7 +480,7 @@ def create_bastionroute():
           {
               'Action': 'UPSERT',
               'ResourceRecordSet': {
-                  'Name': "bastion.cicd.ps.money",
+                  'Name': "bastion.cicd{}.ps.money".format(CONFIG_DICT["kops"]["version"]),
                   'Type': "A",
                   'AliasTarget': {
                 'HostedZoneId': hosted_zone_id,
