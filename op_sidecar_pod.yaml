@@ -9,10 +9,5 @@ spec:
   - name: op-sidecar
     image: mes24x7/op_sidecar:latest
     imagePullPolicy: Always
-    resources:
-      limits:
-        memory: "200Mi"
-      requests:
-        memory: "100Mi"
     command: ["sleep"]
-    args: ["100000"]
+    args: ["100000"]        
