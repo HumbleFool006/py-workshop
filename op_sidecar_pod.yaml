@@ -4,7 +4,7 @@ metadata:
   name: op-sidecar
   namespace: default
 spec:
-  serviceAccountName: datadog-agent
+  serviceAccountName: op-sidecar
   containers:
   - name: op-sidecar
     image: mes24x7/op_sidecar:latest
