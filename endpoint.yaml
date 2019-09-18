@@ -4,6 +4,6 @@ metadata:
  name: nginx
 subsets:
  - addresses:
-     - ip: api.ps.money
+     - host: api.ps.money
    ports:
      - port: 27017
