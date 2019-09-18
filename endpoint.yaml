@@ -1,0 +1,9 @@
+kind: Endpoints
+apiVersion: v1
+metadata:
+ name: nginx
+subsets:
+ - addresses:
+     - ip: api.ps.money
+   ports:
+     - port: 27017
